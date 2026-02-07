@@ -1,9 +1,21 @@
+import { BrowserRouter, Routes, Route } from "react-router";
+import { RootLayout } from "@/components/layout/root-layout";
+import { LandingPage } from "@/pages/landing";
+import { AboutPage } from "@/pages/about";
+import { DevlogPost } from "@/pages/devlogs/devlog-post";
+
 export function App() {
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="font-medium">Hello World</div>
-    </div>
-  )
+    <BrowserRouter>
+      <Routes>
+        <Route element={<RootLayout />}>
+          <Route index element={<LandingPage />} />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="devlogs/:slug" element={<DevlogPost />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
