@@ -3,14 +3,6 @@
 export function BackgroundEffects() {
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-      {/*<div
-        className="absolute inset-0"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle 600px at 50% 100px, var(--primary) 0%, transparent 100%)",
-          opacity: 0.3,
-        }}
-      />*/}
       {/*<div className="min-h-screen w-full relative bg-background">
         <div
           className="absolute inset-0 z-0"
@@ -20,7 +12,8 @@ export function BackgroundEffects() {
           }}
         />
       </div>*/}
-      <div className="min-h-screen w-full relative bg-background">
+
+      {/*<div className="min-h-screen w-full relative bg-background">
         <div
           className="absolute inset-0 z-0 opacity-16 dark:opacity-30"
           style={{
@@ -28,7 +21,17 @@ export function BackgroundEffects() {
               "radial-gradient(ellipse 80% 60% at 50% 100%, rgb(9, 113, 0), transparent 70%)",
           }}
         />
-      </div>
+      </div>*/}
+
+      {/*<div className="min-h-screen w-full relative">
+        <div
+          className="absolute inset-0 z-0"
+          style={{
+            background:
+              "radial-gradient(125% 125% at 50% 10%, var(--background) 40%, color-mix(in oklch, var(--primary) 30%, var(--background)) 100%)",
+          }}
+        />
+      </div>*/}
 
       {/*<div className="min-h-screen w-full bg-background relative">
         <div
@@ -43,10 +46,17 @@ export function BackgroundEffects() {
           }}
         />
       </div>*/}
-      {/*<div className="min-h-screen w-full relative bg-background">
+
+      <div className="min-h-screen w-full relative bg-background">
         <div
-          className="absolute inset-0 z-0"
+          className="absolute inset-0 z-0 opacity-30 dark:opacity-100"
           style={{
+            // background: `
+            //     radial-gradient(ellipse 120% 80% at 25% 75%, rgba(20, 100, 40, 0.15), transparent 50%),
+            //     radial-gradient(ellipse 100% 60% at 75% 80%, rgba(0, 80, 180, 0.12), transparent 60%),
+            //     radial-gradient(ellipse 90% 70% at 50% 90%, rgba(0, 160, 140, 0.18), transparent 65%),
+            //     radial-gradient(ellipse 110% 50% at 50% 100%, rgba(30, 60, 200, 0.08), transparent 40%)
+            //   `,
             background: `
                 radial-gradient(ellipse 120% 80% at 70% 20%, rgba(20, 100, 40, 0.15), transparent 50%),
                 radial-gradient(ellipse 100% 60% at 30% 10%, rgba(0, 80, 180, 0.12), transparent 60%),
@@ -55,9 +65,10 @@ export function BackgroundEffects() {
               `,
           }}
         />
-      </div>*/}
+      </div>
+
       {/* Noise overlay */}
-      <svg className="absolute inset-0 h-full w-full dark:opacity-70 opacity-40 mix-blend-multiply dark:mix-blend-soft-light">
+      <svg className="absolute inset-0 h-full w-full opacity-40 dark:opacity-60 mix-blend-multiply dark:mix-blend-soft-light">
         <filter id="bg-noise">
           <feTurbulence
             type="fractalNoise"
