@@ -6,8 +6,6 @@ services:
       dockerfile: docker/Dockerfile
     container_name: scylla-prelude-frontend
     restart: unless-stopped
-    ports:
-      - "${PRELUDE_FRONTEND_PORT:-8080}:80"
     networks:
       - reverse_proxy_scylla-network
 
