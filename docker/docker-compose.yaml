@@ -9,8 +9,8 @@ services:
     ports:
       - "${PRELUDE_FRONTEND_PORT:-8080}:80"
     networks:
-      - scylla-network
+      - reverse_proxy_scylla-network
 
 networks:
-  scylla-network:
+  reverse_proxy_scylla-network:
     external: true
