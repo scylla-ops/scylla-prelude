@@ -27,5 +27,15 @@
   "devlog.notFound.back": "Back to Devlogs",
   "devlog.back": "Back",
   "header.light": "light",
-  "header.dark": "dark"
+  "header.dark": "dark",
+  "footer.legal": "Legal Notice",
+  "footer.copyright": "© 2026 Scylla",
+  "legal.back": "Back",
+  "legal.title": "Legal Notice",
+  "legal.publisher.title": "Publisher",
+  "legal.publisher.body": "This website is published by the Scylla project, an open-source initiative by the scylla-ops organization.",
+  "legal.hosting.title": "Hosting",
+  "legal.hosting.body": "This website is hosted on a server provided by Epitech, 24 rue Pasteur, 94270 Le Kremlin-Bicêtre, France.",
+  "legal.data.title": "Personal Data",
+  "legal.data.body": "This website does not collect any personal data. No cookies, analytics, or tracking tools are used. Language and theme preferences are stored locally in your browser and are never transmitted to any server."
 }

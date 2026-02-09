@@ -27,5 +27,15 @@
   "devlog.notFound.back": "Retour aux devlogs",
   "devlog.back": "Retour",
   "header.light": "clair",
-  "header.dark": "sombre"
+  "header.dark": "sombre",
+  "footer.legal": "Mentions légales",
+  "footer.copyright": "© 2026 Scylla",
+  "legal.back": "Retour",
+  "legal.title": "Mentions légales",
+  "legal.publisher.title": "Éditeur",
+  "legal.publisher.body": "Ce site est édité par le projet Scylla, une initiative open-source de l'organisation scylla-ops.",
+  "legal.hosting.title": "Hébergement",
+  "legal.hosting.body": "Ce site est hébergé sur un serveur mis à disposition par Epitech, 24 rue Pasteur, 94270 Le Kremlin-Bicêtre, France.",
+  "legal.data.title": "Données personnelles",
+  "legal.data.body": "Ce site ne collecte aucune donnée personnelle. Aucun cookie, outil d'analyse ou de suivi n'est utilisé. Les préférences de langue et de thème sont stockées localement dans votre navigateur et ne sont jamais transmises à un serveur."
 }
