@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Sun, Moon } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
@@ -31,7 +32,18 @@ export function SiteHeader() {
             aria-label="Toggle theme"
             className="text-muted-foreground"
           >
-            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={theme}
+                initial={{ opacity: 0, rotate: -90, scale: 0.5 }}
+                animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                exit={{ opacity: 0, rotate: 90, scale: 0.5 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center justify-center"
+              >
+                {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+              </motion.span>
+            </AnimatePresence>
           </Button>
         </div>
       </div>
