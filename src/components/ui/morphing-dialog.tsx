@@ -178,11 +178,15 @@ function MorphingDialogImage({
   alt,
   className,
   style,
+  loading,
+  decoding,
 }: {
   src: string;
   alt: string;
   className?: string;
   style?: React.CSSProperties;
+  loading?: "lazy" | "eager";
+  decoding?: "async" | "sync" | "auto";
 }) {
   const { uniqueId } = useMorphingDialog();
 
@@ -193,6 +197,8 @@ function MorphingDialogImage({
       className={cn(className)}
       layoutId={`morphing-dialog-img-${uniqueId}`}
       style={style}
+      loading={loading}
+      decoding={decoding}
     />
   );
 }

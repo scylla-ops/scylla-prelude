@@ -117,6 +117,8 @@ export function LandingPage() {
                       src={devlog.image}
                       alt={devlog.title}
                       className="aspect-video w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <div className="p-4">
                       <MorphingDialogTitle>
@@ -151,6 +153,8 @@ export function LandingPage() {
                       src={devlog.image}
                       alt={devlog.title}
                       className="aspect-video w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <div className="p-6">
                       <MorphingDialogTitle>
