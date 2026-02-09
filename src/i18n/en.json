@@ -1,8 +1,8 @@
 {
-  "landing.welcome.title": "Welcome to the Scylla devblog!",
-  "landing.welcome.body": "We started this devblog because we believe in building in the open. You'll find updates on where the project stands, what we're working on, and where we're headed. We want your feedback, and we want you to be part of the conversation as Scylla takes shape.",
-  "landing.scylla.title": "What is Scylla?",
-  "landing.scylla.body1": "An open-core CI platform, delivered as a PaaS and deployable anywhere. A real alternative to tools where cost or lock-in make the decisions for you.",
+  "landing.welcome.title": "Welcome to our devblog!",
+  "landing.welcome.body": "Building an open-source project means full transparency on our part. Here you'll find where the project stands, what we're working on, and where we're headed. Your feedback matters, and we'd love to have you by our side on this journey.",
+  "landing.scylla.title": "Scylla?",
+  "landing.scylla.body1": "An open-core CI platform, delivered as a PaaS and deployable anywhere. A real alternative to tools where random pricing and rate limits become abusive. Shining where you need full ownership of your infrastructure, forever.",
   "landing.scylla.body2": "We focus on ease of use, support for applications at any scale, and high performance.",
   "landing.scylla.learnMore": "Learn more.",
   "landing.posts.title": "Latest Posts",
