@@ -29,19 +29,17 @@ export function AboutPage() {
           Scylla is an open-core continuous integration platform built to be
           delivered as a PaaS and deployable anywhere. The goal is
           straightforward: offer a genuine alternative to platforms where
-          pricing or vendor lock-in end up driving your decisions.
-        </p>
-        <strong>AI GENERATED BELOW</strong>
-        <p>
-          We're focusing on three things that we think matter most : ease of use
-          so you're not fighting your CI, support for applications at any scale
-          from side projects to production workloads, and performance that
-          doesn't make you wait.
+          pricing is too aggressive, or vendor lock-in end up driving your
+          decisions.
         </p>
         <p>
           The project is still early, and there's a lot of ground to cover. If
           you'd like to follow along, the devlogs on the home page are the best
           place to stay up to date.
+        </p>
+        <p>
+          More storytelling about the why and how of Scylla will be coming in
+          here and in future devlogs.
         </p>
       </div>
     </article>
