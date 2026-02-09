@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ExpandableSearch } from "@/components/ui/expandable-search";
 import {
   MorphingDialog,
   MorphingDialogTrigger,
@@ -85,7 +86,36 @@ export function LandingPage() {
         <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
           Latest Posts
         </h3>
-        <div className="flex items-center gap-2">
+        {/* Mobile: scrollable filters + expandable search icon */}
+        <div className="flex items-center gap-1 sm:hidden">
+          <div
+            className="min-w-0 flex-1 overflow-x-auto"
+            style={{
+              maskImage:
+                "linear-gradient(to right, black calc(100% - 24px), transparent)",
+              WebkitMaskImage:
+                "linear-gradient(to right, black calc(100% - 24px), transparent)",
+            }}
+          >
+            <div className="flex items-center gap-1">
+              {filters.map((f) => (
+                <Button
+                  key={f.label}
+                  variant="ghost"
+                  size="sm"
+                  className={activeFilter === f.tag ? "bg-muted" : ""}
+                  onClick={() => setActiveFilter(f.tag)}
+                >
+                  {f.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <ExpandableSearch value={search} onChange={setSearch} />
+        </div>
+
+        {/* Desktop: filters + inline search input */}
+        <div className="hidden sm:flex sm:items-center">
           <div className="flex items-center gap-1">
             {filters.map((f) => (
               <Button
