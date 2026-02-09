@@ -108,7 +108,7 @@ export function LandingPage() {
         </div>
 
         {filteredDevlogs.length > 0 ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filteredDevlogs.map((devlog) => (
               <MorphingDialog key={devlog.slug}>
                 <div className="group relative">
@@ -133,7 +133,7 @@ export function LandingPage() {
                     variant="outline"
                     size="sm"
                     asChild
-                    className="absolute bottom-3 right-3 opacity-0 transition-opacity group-hover:opacity-100"
+                    className="absolute bottom-3 right-3 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                   >
                     <Link
                       to={`/devlogs/${devlog.slug}`}

@@ -9,7 +9,7 @@ export function SiteHeader() {
 
   return (
     <header className="w-full">
-      <div className="mx-auto flex max-w-3xl items-center px-6 py-12">
+      <div className="mx-auto flex max-w-3xl items-center px-6 py-6 sm:py-12">
         <Link to="/" className="text-md font-medium">
           Scylla
         </Link>
