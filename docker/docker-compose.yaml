@@ -1,0 +1,14 @@
+services:
+  scylla-front:
+    image: ${PRELUDE_FRONTEND_IMAGE_NAME:-godlyjaaaaj/scylla-prelude}:${APP_VERSION:-latest}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: scylla-prelude-frontend
+    restart: unless-stopped
+    networks:
+      - reverse_proxy_scylla-network
+
+networks:
+  reverse_proxy_scylla-network:
+    external: true
