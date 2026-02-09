@@ -67,19 +67,13 @@ export function BackgroundEffects() {
         />
       </div>
 
-      {/* Noise overlay */}
-      <svg className="absolute inset-0 h-full w-full opacity-40 dark:opacity-60 mix-blend-multiply dark:mix-blend-soft-light">
-        <filter id="bg-noise">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.65"
-            numOctaves="4"
-            stitchTiles="stitch"
-          />
-          <feColorMatrix type="saturate" values="0" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#bg-noise)" />
-      </svg>
+      <div
+        className="absolute inset-0 opacity-20 sm:opacity-40 dark:opacity-30 dark:sm:opacity-60 mix-blend-multiply dark:mix-blend-soft-light"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          backgroundRepeat: "repeat",
+        }}
+      />
     </div>
     // <div className="pointer-events-none fixed inset-0 z-0">
     //   <div className="absolute inset-0 bg-background" />
