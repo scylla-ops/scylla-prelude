@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 function ExpandableSearch({
   value,
   onChange,
+  placeholder = "Search...",
 }: {
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -45,7 +47,7 @@ function ExpandableSearch({
       {open ? (
         <Input
           ref={inputRef}
-          placeholder="Search..."
+          placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="w-full rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0"

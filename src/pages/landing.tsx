@@ -17,16 +17,18 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { getDevlogsSorted, formatDate } from "@/data/devlogs";
-
-const filters = [
-  { label: "Recent", tag: null },
-  { label: "Devblog", tag: "devblog" },
-  { label: "Announcement", tag: "announcement" },
-  { label: "Community", tag: "community" },
-] as const;
+import { useLocale } from "@/i18n/use-locale";
 
 export function LandingPage() {
-  const allDevblogs = getDevlogsSorted();
+  const { t, locale } = useLocale();
+  const allDevblogs = getDevlogsSorted(locale);
+
+  const filters = [
+    { label: t("filter.recent"), tag: null },
+    { label: t("filter.devblog"), tag: "devblog" },
+    { label: t("filter.announcement"), tag: "announcement" },
+    { label: t("filter.community"), tag: "community" },
+  ];
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
@@ -53,38 +55,34 @@ export function LandingPage() {
     <div className="flex flex-col gap-16">
       <section className="flex flex-col gap-3">
         <h1 className="text-xl font-medium tracking-tight">
-          Welcome to the Scylla devblog!
+          {t("landing.welcome.title")}
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          We started this devblog because we believe in building in the open.
-          You'll find updates on where the project stands, what we're working
-          on, and where we're headed. We want your feedback, and we want you to
-          be part of the conversation as Scylla takes shape.
+          {t("landing.welcome.body")}
         </p>
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-xl font-medium tracking-tight">What is Scylla?</h2>
+        <h2 className="text-xl font-medium tracking-tight">
+          {t("landing.scylla.title")}
+        </h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          An open-core CI platform, delivered as a PaaS and deployable anywhere.
-          A real alternative to tools where cost or lock-in make the decisions
-          for you.
+          {t("landing.scylla.body1")}
         </p>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          We focus on ease of use, support for applications at any scale, and
-          high performance.{" "}
+          {t("landing.scylla.body2")}{" "}
           <Link
             to="/about"
             className="text-foreground underline underline-offset-3 hover:text-muted-foreground"
           >
-            Learn more.
+            {t("landing.scylla.learnMore")}
           </Link>
         </p>
       </section>
 
       <section className="flex flex-col gap-4">
         <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-          Latest Posts
+          {t("landing.posts.title")}
         </h3>
         {/* Mobile: scrollable filters + expandable search icon */}
         <div className="flex items-center gap-1 sm:hidden">
@@ -111,7 +109,11 @@ export function LandingPage() {
               ))}
             </div>
           </div>
-          <ExpandableSearch value={search} onChange={setSearch} />
+          <ExpandableSearch
+            value={search}
+            onChange={setSearch}
+            placeholder={t("search.placeholder")}
+          />
         </div>
 
         {/* Desktop: filters + inline search input */}
@@ -130,7 +132,7 @@ export function LandingPage() {
             ))}
           </div>
           <Input
-            placeholder="Search..."
+            placeholder={t("search.placeholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="ml-auto w-40"
@@ -156,7 +158,7 @@ export function LandingPage() {
                       </MorphingDialogTitle>
                       <MorphingDialogSubtitle>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {formatDate(devlog.date)}
+                          {formatDate(devlog.date, locale)}
                         </p>
                       </MorphingDialogSubtitle>
                     </div>
@@ -171,7 +173,7 @@ export function LandingPage() {
                       to={`/devlogs/${devlog.slug}`}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      Read
+                      {t("landing.posts.read")}
                       <HugeiconsIcon icon={ArrowRight01Icon} size={14} />
                     </Link>
                   </Button>
@@ -192,7 +194,7 @@ export function LandingPage() {
                       </MorphingDialogTitle>
                       <MorphingDialogSubtitle>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {formatDate(devlog.date)}
+                          {formatDate(devlog.date, locale)}
                         </p>
                       </MorphingDialogSubtitle>
                       <MorphingDialogDescription
@@ -204,7 +206,7 @@ export function LandingPage() {
                         </p>
                         <Button className="mt-4 w-full" size="lg" asChild>
                           <Link to={`/devlogs/${devlog.slug}`}>
-                            Read More
+                            {t("landing.posts.readMore")}
                             <HugeiconsIcon icon={ArrowRight01Icon} size={16} />
                           </Link>
                         </Button>
@@ -218,7 +220,7 @@ export function LandingPage() {
           </div>
         ) : (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            No results found.
+            {t("landing.posts.noResults")}
           </p>
         )}
       </section>

@@ -3,8 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowLeft02Icon } from "@hugeicons/core-free-icons";
+import { useLocale } from "@/i18n/use-locale";
 
 export function AboutPage() {
+  const { t } = useLocale();
+
   return (
     <article className="mx-auto flex flex-col gap-6">
       <div className="flex flex-col gap-6">
@@ -16,31 +19,20 @@ export function AboutPage() {
         >
           <Link to="/">
             <HugeiconsIcon icon={ArrowLeft02Icon} size={16} />
-            Back
+            {t("about.back")}
           </Link>
         </Button>
-        <h1 className="text-3xl font-medium tracking-tight">About Scylla</h1>
+        <h1 className="text-3xl font-medium tracking-tight">
+          {t("about.title")}
+        </h1>
       </div>
 
       <Separator />
 
       <div className="flex flex-col gap-4 text-sm leading-relaxed text-muted-foreground">
-        <p>
-          Scylla is an open-core continuous integration platform built to be
-          delivered as a PaaS and deployable anywhere. The goal is
-          straightforward: offer a genuine alternative to platforms where
-          pricing is too aggressive, or vendor lock-in end up driving your
-          decisions.
-        </p>
-        <p>
-          The project is still early, and there's a lot of ground to cover. If
-          you'd like to follow along, the devlogs on the home page are the best
-          place to stay up to date.
-        </p>
-        <p>
-          More storytelling about the why and how of Scylla will be coming in
-          here and in future devlogs.
-        </p>
+        <p>{t("about.body1")}</p>
+        <p>{t("about.body2")}</p>
+        <p>{t("about.body3")}</p>
       </div>
     </article>
   );
