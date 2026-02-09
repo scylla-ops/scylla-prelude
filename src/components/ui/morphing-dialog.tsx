@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import {
   motion,
@@ -96,12 +97,11 @@ function MorphingDialogTrigger({
 
 function MorphingDialogContainer({ children }: { children: React.ReactNode }) {
   const { isOpen, setIsOpen, uniqueId } = useMorphingDialog();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   if (!mounted) return null;
 

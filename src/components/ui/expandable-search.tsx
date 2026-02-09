@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "motion/react";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Search01Icon } from "@hugeicons/core-free-icons";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -50,7 +49,7 @@ function ExpandableSearch({
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0"
+          className="h-auto w-full rounded-none border-0 bg-transparent text-xs shadow-none focus-visible:ring-0"
         />
       ) : (
         <Button
@@ -59,7 +58,7 @@ function ExpandableSearch({
           onClick={() => setOpen(true)}
           aria-label="Search"
         >
-          <HugeiconsIcon icon={Search01Icon} />
+          <Search size={16} />
         </Button>
       )}
     </motion.div>
