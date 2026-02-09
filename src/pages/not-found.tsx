@@ -1,7 +1,6 @@
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowLeft02Icon } from "@hugeicons/core-free-icons";
+import { ArrowLeft } from "lucide-react";
 import { useLocale } from "@/i18n/use-locale";
 
 export function NotFoundPage() {
@@ -15,7 +14,7 @@ export function NotFoundPage() {
       <p className="text-sm text-muted-foreground">{t("notFound.body")}</p>
       <Button variant="outline" size="lg" asChild>
         <Link to="/">
-          <HugeiconsIcon icon={ArrowLeft02Icon} size={16} />
+          <ArrowLeft size={16} />
           {t("notFound.back")}
         </Link>
       </Button>

@@ -8,8 +8,7 @@ import {
   AvatarFallback,
   AvatarGroup,
 } from "@/components/ui/avatar";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowLeft02Icon } from "@hugeicons/core-free-icons";
+import { ArrowLeft } from "lucide-react";
 import { getDevlogBySlug, formatDate } from "@/data/devlogs";
 import { getAuthor } from "@/data/authors";
 import { useLocale } from "@/i18n/use-locale";
@@ -45,7 +44,7 @@ export function DevlogPost() {
           className="w-fit text-muted-foreground"
         >
           <Link to="/">
-            <HugeiconsIcon icon={ArrowLeft02Icon} size={16} />
+            <ArrowLeft size={16} />
             {t("devlog.back")}
           </Link>
         </Button>

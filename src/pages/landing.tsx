@@ -15,8 +15,7 @@ import {
   MorphingDialogDescription,
   MorphingDialogClose,
 } from "@/components/ui/morphing-dialog";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
+import { ArrowRight } from "lucide-react";
 import { getDevlogsSorted, formatDate } from "@/data/devlogs";
 import { useLocale } from "@/i18n/use-locale";
 
@@ -236,7 +235,7 @@ export function LandingPage() {
                           onClick={(e) => e.stopPropagation()}
                         >
                           {t("landing.posts.read")}
-                          <HugeiconsIcon icon={ArrowRight01Icon} size={14} />
+                          <ArrowRight size={14} />
                         </Link>
                       </Button>
                     </div>
@@ -271,10 +270,7 @@ export function LandingPage() {
                             <Button className="mt-4 w-full" size="lg" asChild>
                               <Link to={`/devlogs/${devlog.slug}`}>
                                 {t("landing.posts.readMore")}
-                                <HugeiconsIcon
-                                  icon={ArrowRight01Icon}
-                                  size={16}
-                                />
+                                <ArrowRight size={16} />
                               </Link>
                             </Button>
                           </MorphingDialogDescription>

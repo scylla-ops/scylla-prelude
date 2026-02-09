@@ -1,11 +1,12 @@
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
+import { Sun, Moon } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useLocale } from "@/i18n/use-locale";
 
 export function SiteHeader() {
   const { theme, toggleTheme } = useTheme();
-  const { locale, setLocale, t } = useLocale();
+  const { locale, setLocale } = useLocale();
 
   return (
     <header className="w-full">
@@ -25,12 +26,12 @@ export function SiteHeader() {
           </Button>
           <Button
             variant="ghost"
+            size="icon"
             onClick={toggleTheme}
             aria-label="Toggle theme"
+            className="text-muted-foreground"
           >
-            <span className="text-muted-foreground">
-              {theme === "dark" ? t("header.light") : t("header.dark")}
-            </span>
+            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
           </Button>
         </div>
       </div>
