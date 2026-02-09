@@ -2,23 +2,34 @@ import { useParams, Link } from "react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+  AvatarGroup,
+} from "@/components/ui/avatar";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowLeft02Icon } from "@hugeicons/core-free-icons";
 import { getDevlogBySlug, formatDate } from "@/data/devlogs";
+import { getAuthor } from "@/data/authors";
+import { useLocale } from "@/i18n/use-locale";
 
 export function DevlogPost() {
+  const { t, locale } = useLocale();
   const { slug } = useParams<{ slug: string }>();
-  const devlog = slug ? getDevlogBySlug(slug) : undefined;
+  const devlog = slug ? getDevlogBySlug(slug, locale) : undefined;
 
   if (!devlog) {
     return (
       <div className="flex flex-col gap-6 items-center justify-center">
-        <h1 className="text-xl font-medium tracking-tight">Not Found</h1>
+        <h1 className="text-xl font-medium tracking-tight">
+          {t("devlog.notFound.title")}
+        </h1>
         <p className="text-sm text-muted-foreground">
-          That devlog doesn't exist :(
+          {t("devlog.notFound.body")}
         </p>
         <Button variant="outline" size="lg" asChild>
-          <Link to="/">Back to Devlogs</Link>
+          <Link to="/">{t("devlog.notFound.back")}</Link>
         </Button>
       </div>
     );
@@ -35,13 +46,31 @@ export function DevlogPost() {
         >
           <Link to="/">
             <HugeiconsIcon icon={ArrowLeft02Icon} size={16} />
-            Back
+            {t("devlog.back")}
           </Link>
         </Button>
-        <h1 className="text-3xl font-medium tracking-tight">{devlog.title}</h1>
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-3xl font-medium tracking-tight">
+            {devlog.title}
+          </h1>
+          {devlog.authors.length > 0 && (
+            <AvatarGroup>
+              {devlog.authors.map((id) => {
+                const author = getAuthor(id);
+                if (!author) return null;
+                return (
+                  <Avatar key={id} size="sm">
+                    <AvatarImage src={author.avatar} alt={author.name} />
+                    <AvatarFallback>{author.name[0]}</AvatarFallback>
+                  </Avatar>
+                );
+              })}
+            </AvatarGroup>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">
-            {formatDate(devlog.date)}
+            {formatDate(devlog.date, locale)}
           </span>
           {devlog.tags.map((tag) => (
             <Badge key={tag} variant="outline">

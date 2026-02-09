@@ -7,6 +7,7 @@ declare module "*.mdx" {
     summary: string;
     tags: string[];
     image: string;
+    authors?: string[];
   };
 
   const MDXComponent: ComponentType;
