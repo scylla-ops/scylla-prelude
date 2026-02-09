@@ -6,7 +6,7 @@
         <title>Scylla :: prelude</title>
         <meta
             name="description"
-            content="The Scylla devblog. Follow the development of an open-core CI platform built to be deployable anywhere."
+            content="The Scylla devblog. Follow the development of an open-core CI platform built to be deployable anywhere by anyone."
         />
         <meta name="theme-color" content="#0a0a0b" />
         <link rel="canonical" href="https://prelude.scylla.sh/" />
@@ -18,7 +18,7 @@
         <meta property="og:title" content="Scylla :: prelude" />
         <meta
             property="og:description"
-            content="The Scylla devblog. Follow the development of an open-core CI platform built to be deployable anywhere."
+            content="The Scylla devblog. Follow the development of an open-core CI platform built to be deployable anywhere by anyone."
         />
         <meta property="og:url" content="https://prelude.scylla.sh/" />
         <meta
@@ -31,14 +31,104 @@
         <meta name="twitter:title" content="Scylla :: prelude" />
         <meta
             name="twitter:description"
-            content="The Scylla devblog. Follow the development of an open-core CI platform built to be deployable anywhere."
+            content="The Scylla devblog. Follow the development of an open-core CI platform built to be deployable anywhere by anyone."
         />
         <meta
             name="twitter:image"
             content="https://prelude.scylla.sh/images/devlogs/devlog-1.png"
         />
+
+        <script>
+            (() => {
+                const d = document.documentElement;
+                const dark =
+                    localStorage.theme === "dark" ||
+                    (!localStorage.theme &&
+                        matchMedia("(prefers-color-scheme: dark)").matches);
+                if (dark) {
+                    d.classList.add("dark");
+                    d.style.colorScheme = "dark";
+                } else {
+                    d.style.colorScheme = "light";
+                }
+            })();
+        </script>
+
+        <style>
+            #background {
+                pointer-events: none;
+                position: fixed;
+                inset: 0;
+                z-index: -1;
+                overflow: hidden;
+            }
+            #bg-base {
+                min-height: 100vh;
+                width: 100%;
+                position: relative;
+                background: oklch(1 0 0);
+            }
+            .dark #bg-base {
+                background: oklch(0.141 0.005 285.823);
+            }
+            #bg-gradient {
+                position: absolute;
+                inset: 0;
+                opacity: 0.3;
+                background:
+                    radial-gradient(
+                        ellipse 120% 80% at 70% 20%,
+                        rgba(20, 100, 40, 0.15),
+                        transparent 50%
+                    ),
+                    radial-gradient(
+                        ellipse 100% 60% at 30% 10%,
+                        rgba(0, 80, 180, 0.12),
+                        transparent 60%
+                    ),
+                    radial-gradient(
+                        ellipse 90% 70% at 50% 0%,
+                        rgba(0, 160, 140, 0.18),
+                        transparent 65%
+                    ),
+                    radial-gradient(
+                        ellipse 110% 50% at 80% 30%,
+                        rgba(30, 60, 200, 0.08),
+                        transparent 40%
+                    );
+            }
+            .dark #bg-gradient {
+                opacity: 1;
+            }
+            #bg-noise {
+                position: absolute;
+                inset: 0;
+                opacity: 0.2;
+                mix-blend-mode: multiply;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+                background-repeat: repeat;
+            }
+            .dark #bg-noise {
+                opacity: 0.3;
+                mix-blend-mode: soft-light;
+            }
+            @media (min-width: 640px) {
+                #bg-noise {
+                    opacity: 0.4;
+                }
+                .dark #bg-noise {
+                    opacity: 0.6;
+                }
+            }
+        </style>
     </head>
     <body>
+        <div id="background">
+            <div id="bg-base">
+                <div id="bg-gradient"></div>
+            </div>
+            <div id="bg-noise"></div>
+        </div>
         <div id="root"></div>
         <script type="module" src="/src/main.tsx"></script>
     </body>
