@@ -4,6 +4,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+    env_file: ../server/.env
     container_name: scylla-prelude-frontend
     restart: unless-stopped
     networks:
