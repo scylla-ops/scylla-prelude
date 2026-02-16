@@ -1,30 +1,49 @@
-# --- Étape 1 : Build ---
-FROM oven/bun:latest AS build
-
-LABEL authors="sebastienlucas"
-
+# ==========================================
+# Étape 1 : Build Frontend (React/SPA)
+# ==========================================
+FROM oven/bun:latest AS frontend-build
 WORKDIR /app
 
-# Installation des dépendances
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
-# Copie du code source et build
 COPY . .
 RUN bun run build
 
-# --- Étape 2 : Serveur de Production ---
-FROM nginx:stable-alpine
+# ==========================================
+# Étape 2 : Build Backend (Rust)
+# ==========================================
+FROM rust:alpine3.23 AS backend-build
+WORKDIR /app
+
+RUN apk add --no-cache musl-dev pkgconfig openssl-dev
+
+COPY server/ ./server/
+
+WORKDIR /app/server
+
+RUN cargo build --release
+
+# ==========================================
+# Étape 3 : Final Image
+# ==========================================
+FROM alpine:latest
 
 LABEL authors="sebastienlucas"
 
-# Configuration Nginx pour React Router (SPA)
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-COPY docker/security_headers.conf etc/nginx/snippets/security_headers.conf
+RUN apk add --no-cache libgcc ca-certificates
 
-# On récupère uniquement le build final
-COPY --from=build /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-EXPOSE 80
+COPY --from=frontend-build /app/dist /app/dist
 
-CMD ["nginx", "-g", "daemon off;"]
+COPY --from=backend-build /app/server/target/release/server /app/server-bin
+
+ENV HOST=0.0.0.0
+ENV PORT=8080
+ENV DIST_PATH="/app/dist"
+ENV RUST_LOG="server=debug,tower_http=info"
+
+EXPOSE 8080
+
+CMD ["/app/server-bin"]

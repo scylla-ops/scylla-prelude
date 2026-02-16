@@ -6,6 +6,7 @@ bun.lockb
 # Build
 dist
 build
+target
 
 # Environnement
 .env
