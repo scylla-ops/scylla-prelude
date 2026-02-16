@@ -2,8 +2,10 @@ mod config;
 
 use crate::config::AppConfig;
 use axum::Router;
+use axum::http::header::CACHE_CONTROL;
 use axum::http::{HeaderName, HeaderValue};
 use std::net::SocketAddr;
+use tower::ServiceBuilder;
 use tower_http::LatencyUnit;
 use tower_http::compression::CompressionLayer;
 use tower_http::request_id::{MakeRequestUuid, SetRequestIdLayer};
@@ -37,11 +39,26 @@ async fn main() {
 
     let x_request_id = HeaderName::from_static("x-request-id");
     let index_path = format!("{}/index.html", config.dist_path);
+
+    let assets_path = format!("{}/assets", config.dist_path);
+    let assets_service = ServeDir::new(assets_path);
+
+    let cached_assets = ServiceBuilder::new()
+        .layer(SetResponseHeaderLayer::overriding(
+            CACHE_CONTROL,
+            HeaderValue::from_static("public, max-age=31536000, immutable"),
+        ))
+        .service(assets_service);
+
     let spa_service = ServeDir::new(&config.dist_path).fallback(ServeFile::new(index_path));
 
+    let assets_router = Router::new().nest_service("/assets", cached_assets);
+
+    let spa_router = Router::new().fallback_service(spa_service);
+
     let app = Router::new()
-        .fallback_service(spa_service)
-        // --- Headers de Sécurité ---
+        .merge(assets_router)
+        .merge(spa_router)
         .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("x-content-type-options"),
             HeaderValue::from_static("nosniff"),
@@ -54,23 +71,18 @@ async fn main() {
             HeaderName::from_static("x-xss-protection"),
             HeaderValue::from_static("1; mode=block"),
         ))
-        // HSTS
-        /*
-        .layer(SetResponseHeaderLayer::overriding(
-            HeaderName::from_static("strict-transport-security"),
-            HeaderValue::from_static("max-age=31536000; includeSubDomains"),
-        ))
-        */
         .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("content-security-policy"),
-            HeaderValue::from_static("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https:;"),
+            HeaderValue::from_static(
+                "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https:;",
+            ),
         ))
         .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("permissions-policy"),
-            HeaderValue::from_static("camera=(), microphone=(), geolocation=(), fullscreen=(self)"),
+            HeaderValue::from_static(
+                "camera=(), microphone=(), geolocation=(), fullscreen=(self)",
+            ),
         ))
-        // --- Fin Headers de Sécurité ---
-
         .layer(CompressionLayer::new())
         .layer(
             TraceLayer::new_for_http()
@@ -83,7 +95,7 @@ async fn main() {
                 ),
         )
         .layer(SetRequestIdLayer::new(
-            x_request_id.clone(),
+            x_request_id,
             MakeRequestUuid,
         ));
 
