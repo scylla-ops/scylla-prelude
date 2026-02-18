@@ -7,6 +7,7 @@
       "dependencies": {
         "@base-ui/react": "^1.1.0",
         "@fontsource-variable/inter": "^5.2.8",
+        "@icons-pack/react-simple-icons": "^13.11.2",
         "@mdx-js/rollup": "^3.1.1",
         "@tailwindcss/vite": "^4.1.17",
         "class-variance-authority": "^0.7.1",
@@ -202,6 +203,8 @@
     "@humanwhocodes/module-importer": ["@humanwhocodes/module-importer@1.0.1", "", {}, "sha512-bxveV4V8v5Yb4ncFTT3rPSgZBOpCkjfK0y4oVVVJwIuDVBRMDXrPyXRL988i5ap9m9bnyEEjWfm5WkBmtffLfA=="],
 
     "@humanwhocodes/retry": ["@humanwhocodes/retry@0.4.3", "", {}, "sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ=="],
+
+    "@icons-pack/react-simple-icons": ["@icons-pack/react-simple-icons@13.11.2", "", { "peerDependencies": { "react": "^16.13 || ^17 || ^18 || ^19" } }, "sha512-IiYWH7Dlp4HvTxsL9Mh/1tjKKhLikKzL+578H1ngQkoREhfXaS9yNl1SXkjNGEAYqNH2w5/tBQc0uXLWAkcSFA=="],
 
     "@inquirer/ansi": ["@inquirer/ansi@1.0.2", "", {}, "sha512-S8qNSZiYzFd0wAcyG5AXCvUHC5Sr7xpZ9wZ2py9XR88jUz8wooStVx5M6dRzczbBWjic9NP7+rY0Xi7qqK/aMQ=="],
 
