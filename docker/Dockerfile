@@ -1,11 +1,17 @@
+# syntax=docker/dockerfile:1
+
 # ==========================================
 # Étape 1 : Build Frontend (React/SPA)
 # ==========================================
 FROM oven/bun:latest AS frontend-build
+
+ARG TARGETARCH
+
 WORKDIR /app
 
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.bun/install/cache,id=bun-cache-${TARGETARCH} \
+	bun install --frozen-lockfile
 
 COPY . .
 RUN bun run build
@@ -14,6 +20,9 @@ RUN bun run build
 # Étape 2 : Build Backend (Rust)
 # ==========================================
 FROM rust:alpine3.23 AS backend-build
+
+ARG TARGETARCH
+
 WORKDIR /app
 
 RUN apk add --no-cache musl-dev pkgconfig openssl-dev
@@ -22,7 +31,11 @@ COPY server/ ./server/
 
 WORKDIR /app/server
 
-RUN cargo build --release
+RUN --mount=type=cache,target=/usr/local/cargo/registry,id=cargo-registry-${TARGETARCH} \
+	--mount=type=cache,target=/usr/local/cargo/git,id=cargo-git-${TARGETARCH} \
+	--mount=type=cache,target=/app/server/target,id=cargo-target-${TARGETARCH} \
+	cargo build --release && \
+	cp /app/server/target/release/server /app/server-bin
 
 # ==========================================
 # Étape 3 : Final Image
@@ -37,7 +50,7 @@ WORKDIR /app
 
 COPY --from=frontend-build /app/dist /app/dist
 
-COPY --from=backend-build /app/server/target/release/server /app/server-bin
+COPY --from=backend-build /app/server-bin /app/server-bin
 
 ENV HOST=0.0.0.0
 ENV PORT=8080
