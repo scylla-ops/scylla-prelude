@@ -48,7 +48,7 @@ pub async fn feed(
                 .link(Some(link))
                 .description(Some(p.summary))
                 .content(Some(html_content))
-                .pub_date(Some(p.created_at))
+                .pub_date(Some(p.created_at.to_rfc2822()))
                 .categories(
                     p.tags
                         .into_iter()

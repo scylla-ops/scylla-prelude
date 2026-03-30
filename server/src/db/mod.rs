@@ -1,4 +1,4 @@
-use surrealdb::engine::remote::ws::{Client, Ws};
+use surrealdb::engine::any::Any;
 use surrealdb::opt::auth::Root;
 use surrealdb::Surreal;
 use surrealdb_types::SurrealValue;
@@ -7,8 +7,8 @@ use tracing::info;
 use crate::config::AppConfig;
 use crate::models::post;
 
-pub async fn init_db(config: &AppConfig) -> surrealdb::Result<Surreal<Client>> {
-    let db = Surreal::new::<Ws>(&config.surrealdb_url).await?;
+pub async fn init_db(config: &AppConfig) -> surrealdb::Result<Surreal<Any>> {
+    let db = surrealdb::engine::any::connect(&config.surrealdb_url).await?;
 
     db.signin(Root {
         username: config.surrealdb_user.clone(),
@@ -28,7 +28,7 @@ pub async fn init_db(config: &AppConfig) -> surrealdb::Result<Surreal<Client>> {
     Ok(db)
 }
 
-async fn seed_if_empty(db: &Surreal<Client>) -> surrealdb::Result<()> {
+async fn seed_if_empty(db: &Surreal<Any>) -> surrealdb::Result<()> {
     let mut result = db
         .query("SELECT count() AS total FROM type::table($table) GROUP ALL")
         .bind(("table", post::TABLE))

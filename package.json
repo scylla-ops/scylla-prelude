@@ -7,7 +7,8 @@
 		"dev": "vite",
 		"build": "tsc -b && vite build",
 		"lint": "eslint .",
-		"preview": "vite preview"
+		"preview": "vite preview",
+		"setup": "cp -n server/.env.example server/.env && echo '✓ server/.env created from .env.example'"
 	},
 	"dependencies": {
 		"@base-ui/react": "^1.1.0",

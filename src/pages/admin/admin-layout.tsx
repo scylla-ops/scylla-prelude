@@ -1,10 +1,21 @@
-import { Outlet, Link } from "react-router";
+import { useEffect } from "react";
+import { Outlet, Link, useSearchParams, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { LogOut, LayoutDashboard } from "lucide-react";
 
 export function AdminLayout() {
-  const { user, isAuthenticated, login, logout } = useAuth();
+  const { user, isAuthenticated, login, logout, setToken } = useAuth();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = searchParams.get("token");
+    if (token) {
+      setToken(token);
+      navigate("/admin", { replace: true });
+    }
+  }, [searchParams, setToken, navigate]);
 
   if (!isAuthenticated) {
     return (

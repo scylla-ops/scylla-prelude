@@ -11,7 +11,7 @@ use axum::http::header::CACHE_CONTROL;
 use axum::http::{HeaderName, HeaderValue};
 use axum::routing::{delete, get, post, put};
 use std::net::SocketAddr;
-use surrealdb::engine::remote::ws::Client;
+use surrealdb::engine::any::Any;
 use surrealdb::Surreal;
 use tower::ServiceBuilder;
 use tower_http::LatencyUnit;
@@ -27,7 +27,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub db: Surreal<Client>,
+    pub db: Surreal<Any>,
     pub config: AppConfig,
 }
 

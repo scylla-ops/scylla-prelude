@@ -68,11 +68,13 @@ pub async fn github_callback(
         .await
         .map_err(|_| AppError::BadRequest("Invalid GitHub user response".into()))?;
 
-    // Check whitelist
+    // Check whitelist (case-insensitive)
+    let login_lower = github_user.login.to_lowercase();
     if !state
         .config
         .admin_github_usernames
-        .contains(&github_user.login)
+        .iter()
+        .any(|u| u.to_lowercase() == login_lower)
     {
         return Err(AppError::Unauthorized);
     }

@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use surrealdb_types::{RecordId, SurrealValue};
 
@@ -15,8 +16,8 @@ pub struct Post {
     pub image: Option<String>,
     pub authors: Vec<String>,
     pub status: String,
-    pub created_at: String,
-    pub updated_at: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize, SurrealValue)]
@@ -29,5 +30,5 @@ pub struct PostSummary {
     pub image: Option<String>,
     pub authors: Vec<String>,
     pub status: String,
-    pub created_at: String,
+    pub created_at: DateTime<Utc>,
 }
