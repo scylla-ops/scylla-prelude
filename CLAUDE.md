@@ -27,9 +27,9 @@ Scylla Prelude is a devblog for the Scylla open-core CI platform. It's a monorep
 
 **Frontend** (`src/`): React 19 + React Router + Vite. Pages are in `src/pages/`, layout components in `src/components/layout/`, and UI primitives in `src/components/ui/` (shadcn/ui based on Radix). Styling uses Tailwind CSS 4. Animations use the `motion` library.
 
-**Backend** (`server/`): Axum web server. Serves the SPA from `dist/` with fallback routing, applies security headers (CSP, X-Frame-Options, etc.), compression, and request tracing. Config via env vars: `HOST`, `PORT`, `DIST_PATH`, `RUST_LOG`.
+**Backend** (`server/`): Axum web server with SurrealDB 3. Serves the SPA from `dist/` with fallback routing, applies security headers (CSP, X-Frame-Options, etc.), compression, and request tracing. API routes under `/api/v1/` include public post endpoints, RSS feed, GitHub OAuth auth, and admin CRUD. Config via env vars in `server/.env` (see `server/.env.example`).
 
-**Content** (`src/content/devlogs/`): Blog posts are MDX files with frontmatter (`title`, `date`, `summary`, `tags`, `image`, `authors`). Metadata is registered in `src/data/devlogs.ts`. French translations go in the `fr/` subdirectory.
+**Content**: Blog posts are stored in SurrealDB (table `post`), managed via the admin UI at `/admin`. Each post has separate entries per locale (slug + locale = unique key). Posts are fetched from the API using `@tanstack/react-query` and rendered with `react-markdown`.
 
 **Docker** (`docker/`): Multi-stage build — Bun builds frontend, Rust compiles server, both go into a minimal Alpine image.
 
