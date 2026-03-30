@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ExpandableSearch } from "@/components/ui/expandable-search";
@@ -16,7 +17,7 @@ import {
   MorphingDialogClose,
 } from "@/components/ui/morphing-dialog";
 import { ArrowRight } from "lucide-react";
-import { getDevlogsSorted, formatDate } from "@/data/devlogs";
+import { fetchPosts, formatDate } from "@/lib/api";
 import { useLocale } from "@/i18n/use-locale";
 
 const easeOutSine = [0.39, 0.575, 0.565, 1] as const;
@@ -68,7 +69,6 @@ function FadeIn({
 
 export function LandingPage() {
   const { t, locale } = useLocale();
-  const allDevblogs = getDevlogsSorted(locale);
 
   const filters = [
     { label: t("filter.recent"), tag: null },
@@ -79,24 +79,20 @@ export function LandingPage() {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
+  const { data: allDevblogs = [] } = useQuery({
+    queryKey: ["posts", locale, activeFilter],
+    queryFn: () => fetchPosts(locale, activeFilter),
+  });
+
   const filteredDevlogs = useMemo(() => {
-    let results = allDevblogs;
-
-    if (activeFilter) {
-      results = results.filter((d) => d.tags.includes(activeFilter));
-    }
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      results = results.filter(
-        (d) =>
-          d.title.toLowerCase().includes(q) ||
-          d.summary.toLowerCase().includes(q),
-      );
-    }
-
-    return results;
-  }, [allDevblogs, activeFilter, search]);
+    if (!search.trim()) return allDevblogs;
+    const q = search.toLowerCase();
+    return allDevblogs.filter(
+      (d) =>
+        d.title.toLowerCase().includes(q) ||
+        d.summary.toLowerCase().includes(q),
+    );
+  }, [allDevblogs, search]);
 
   return (
     <AnimatePresence mode="wait">
@@ -201,11 +197,11 @@ export function LandingPage() {
             {filteredDevlogs.length > 0 ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredDevlogs.map((devlog) => (
-                  <MorphingDialog key={devlog.slug}>
+                  <MorphingDialog key={`${devlog.slug}-${devlog.locale}`}>
                     <div className="group relative">
                       <MorphingDialogTrigger className="overflow-hidden rounded-xl ring-1 ring-foreground/10 bg-card">
                         <MorphingDialogImage
-                          src={devlog.image}
+                          src={devlog.image || ""}
                           alt={devlog.title}
                           className="aspect-video w-full object-cover"
                           loading="lazy"
@@ -219,7 +215,7 @@ export function LandingPage() {
                           </MorphingDialogTitle>
                           <MorphingDialogSubtitle>
                             <p className="mt-1 text-xs text-muted-foreground">
-                              {formatDate(devlog.date, locale)}
+                              {formatDate(devlog.created_at, locale)}
                             </p>
                           </MorphingDialogSubtitle>
                         </div>
@@ -243,7 +239,7 @@ export function LandingPage() {
                     <MorphingDialogContainer>
                       <MorphingDialogContent className="relative w-full max-w-md rounded-xl bg-card ring-1 ring-foreground/10">
                         <MorphingDialogImage
-                          src={devlog.image}
+                          src={devlog.image || ""}
                           alt={devlog.title}
                           className="aspect-video w-full object-cover"
                           loading="lazy"
@@ -257,7 +253,7 @@ export function LandingPage() {
                           </MorphingDialogTitle>
                           <MorphingDialogSubtitle>
                             <p className="mt-1 text-xs text-muted-foreground">
-                              {formatDate(devlog.date, locale)}
+                              {formatDate(devlog.created_at, locale)}
                             </p>
                           </MorphingDialogSubtitle>
                           <MorphingDialogDescription
