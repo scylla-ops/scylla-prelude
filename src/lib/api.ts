@@ -7,7 +7,9 @@ export interface Post {
   tags: string[];
   image: string | null;
   authors: string[];
+  reading_time: number;
   status: string;
+  published_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +26,7 @@ export interface CreatePostRequest {
   image: string | null;
   authors: string[];
   status: string;
+  published_at: string | null;
 }
 
 const API_BASE = "/api/v1";
@@ -51,6 +54,19 @@ export async function fetchPost(
 
 function authHeaders(token: string): HeadersInit {
   return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+}
+
+export async function fetchAdminPost(
+  token: string,
+  slug: string,
+  locale: string,
+): Promise<Post> {
+  const params = new URLSearchParams({ locale });
+  const res = await fetch(`${API_BASE}/admin/posts/${slug}?${params}`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error("Post not found");
+  return res.json();
 }
 
 export async function fetchAdminPosts(token: string): Promise<PostSummary[]> {

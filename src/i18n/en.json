@@ -41,5 +41,10 @@
   "admin.title": "Admin",
   "admin.loginSubtitle": "Sign in to manage posts",
   "admin.loginButton": "Continue with GitHub",
-  "admin.dashboard": "Dashboard"
+  "admin.dashboard": "Dashboard",
+  "post.readingTime": "{min} min read",
+  "admin.autoSaved": "Auto-saved",
+  "admin.status.draft": "Draft",
+  "admin.status.published": "Published",
+  "admin.status.scheduled": "Scheduled"
 }

@@ -41,5 +41,10 @@
   "admin.title": "Admin",
   "admin.loginSubtitle": "Connectez-vous pour gérer les articles",
   "admin.loginButton": "Continuer avec GitHub",
-  "admin.dashboard": "Tableau de bord"
+  "admin.dashboard": "Tableau de bord",
+  "post.readingTime": "{min} min de lecture",
+  "admin.autoSaved": "Sauvegardé",
+  "admin.status.draft": "Brouillon",
+  "admin.status.published": "Publié",
+  "admin.status.scheduled": "Planifié"
 }

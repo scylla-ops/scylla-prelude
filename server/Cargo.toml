@@ -22,3 +22,7 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
 rss = "2"
 pulldown-cmark = "0.12"
+
+[dev-dependencies]
+axum-test = "17"
+surrealdb = { version = "3", features = ["kv-mem"] }

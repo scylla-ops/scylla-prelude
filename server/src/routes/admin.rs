@@ -1,11 +1,12 @@
 use axum::Json;
 use axum::extract::{Path, Query, State};
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
 use crate::AppState;
 use crate::error::AppError;
 use crate::middleware::auth::AuthUser;
-use crate::models::post::{self, Post, PostSummary};
+use crate::models::post::{self, Post, PostSummary, estimate_reading_time};
 
 #[derive(Deserialize)]
 pub struct LocaleParam {
@@ -23,6 +24,7 @@ pub struct CreatePostRequest {
     pub image: Option<String>,
     pub authors: Vec<String>,
     pub status: String,
+    pub published_at: Option<DateTime<Utc>>,
 }
 
 pub async fn list_all_posts(
@@ -32,7 +34,7 @@ pub async fn list_all_posts(
     let mut result = state
         .db
         .query(
-            "SELECT slug, locale, title, summary, tags, image, authors, status, created_at
+            "SELECT slug, locale, title, summary, tags, image, authors, reading_time, status, published_at, created_at
              FROM type::table($table)
              ORDER BY created_at DESC",
         )
@@ -42,11 +44,35 @@ pub async fn list_all_posts(
     Ok(Json(posts))
 }
 
+pub async fn get_post(
+    State(state): State<AppState>,
+    _auth: AuthUser,
+    Path(slug): Path<String>,
+    Query(params): Query<LocaleParam>,
+) -> Result<Json<Post>, AppError> {
+    let locale = params.locale.unwrap_or_else(|| "en".into());
+    let mut result = state
+        .db
+        .query(
+            "SELECT * FROM type::table($table)
+             WHERE slug = $slug AND locale = $locale
+             LIMIT 1",
+        )
+        .bind(("table", post::TABLE))
+        .bind(("slug", slug))
+        .bind(("locale", locale))
+        .await?;
+    let post: Option<Post> = result.take(0)?;
+    post.map(Json).ok_or(AppError::NotFound)
+}
+
 pub async fn create_post(
     State(state): State<AppState>,
     _auth: AuthUser,
     Json(req): Json<CreatePostRequest>,
 ) -> Result<Json<Option<Post>>, AppError> {
+    let reading_time = estimate_reading_time(&req.content);
+
     let mut result = state
         .db
         .query(
@@ -59,7 +85,9 @@ pub async fn create_post(
                 tags: $tags,
                 image: $image,
                 authors: $authors,
-                status: $status
+                reading_time: $reading_time,
+                status: $status,
+                published_at: $published_at
             }",
         )
         .bind(("table", post::TABLE))
@@ -71,7 +99,9 @@ pub async fn create_post(
         .bind(("tags", req.tags))
         .bind(("image", req.image))
         .bind(("authors", req.authors))
+        .bind(("reading_time", reading_time))
         .bind(("status", req.status))
+        .bind(("published_at", req.published_at))
         .await?;
     let post: Option<Post> = result.take(0)?;
     Ok(Json(post))
@@ -83,6 +113,8 @@ pub async fn update_post(
     Path(slug): Path<String>,
     Json(req): Json<CreatePostRequest>,
 ) -> Result<Json<Post>, AppError> {
+    let reading_time = estimate_reading_time(&req.content);
+
     let mut result = state
         .db
         .query(
@@ -93,7 +125,9 @@ pub async fn update_post(
                 tags = $tags,
                 image = $image,
                 authors = $authors,
+                reading_time = $reading_time,
                 status = $status,
+                published_at = $published_at,
                 updated_at = time::now()
              WHERE slug = $slug AND locale = $locale
              RETURN AFTER",
@@ -107,7 +141,9 @@ pub async fn update_post(
         .bind(("tags", req.tags))
         .bind(("image", req.image))
         .bind(("authors", req.authors))
+        .bind(("reading_time", reading_time))
         .bind(("status", req.status))
+        .bind(("published_at", req.published_at))
         .await?;
     let post: Option<Post> = result.take(0)?;
     post.map(Json).ok_or(AppError::NotFound)
@@ -156,7 +192,6 @@ pub async fn upload_image(
             .unwrap_or("bin")
             .to_lowercase();
 
-        // Only allow image types
         if !matches!(ext.as_str(), "png" | "jpg" | "jpeg" | "webp" | "gif") {
             return Err(AppError::BadRequest(
                 "Only png, jpg, jpeg, webp, gif allowed".into(),
@@ -168,7 +203,6 @@ pub async fn upload_image(
             .await
             .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
-        // 5MB limit
         if data.len() > 5 * 1024 * 1024 {
             return Err(AppError::BadRequest("File too large (max 5MB)".into()));
         }

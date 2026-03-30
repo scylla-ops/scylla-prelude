@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import MDEditor from "@uiw/react-md-editor";
@@ -7,14 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  fetchPost,
+  fetchAdminPost,
   createPost,
   updatePost,
   uploadImage,
   type CreatePostRequest,
 } from "@/lib/api";
 import { authors } from "@/data/authors";
-import { Save, Upload } from "lucide-react";
+import { Save, Upload, Clock, Check } from "lucide-react";
 
 function slugify(text: string): string {
   return text
@@ -22,6 +22,9 @@ function slugify(text: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 }
+
+const AUTOSAVE_KEY = "admin_draft_autosave";
+const AUTOSAVE_INTERVAL = 30_000; // 30 seconds
 
 export function AdminPostEditor() {
   const { slug } = useParams<{ slug: string }>();
@@ -42,12 +45,19 @@ export function AdminPostEditor() {
     image: null,
     authors: [],
     status: "draft",
+    published_at: null,
   });
   const [tagInput, setTagInput] = useState("");
+  const [autoSaveStatus, setAutoSaveStatus] = useState<
+    "idle" | "saving" | "saved"
+  >("idle");
+  const formRef = useRef(form);
+  formRef.current = form;
 
+  // Load from existing post when editing
   const { data: existingPost } = useQuery({
     queryKey: ["admin-post", slug, editLocale],
-    queryFn: () => fetchPost(slug!, editLocale),
+    queryFn: () => fetchAdminPost(token!, slug!, editLocale),
     enabled: isEditing && !!token,
   });
 
@@ -63,14 +73,51 @@ export function AdminPostEditor() {
         image: existingPost.image,
         authors: existingPost.authors,
         status: existingPost.status,
+        published_at: existingPost.published_at,
       });
+      return;
     }
-  }, [existingPost]);
+
+    // For new posts, try to restore auto-saved draft
+    if (!isEditing) {
+      const saved = localStorage.getItem(AUTOSAVE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as CreatePostRequest;
+          setForm(parsed);
+          setAutoSaveStatus("saved");
+        } catch {
+          // ignore corrupted data
+        }
+      }
+    }
+  }, [existingPost, isEditing]);
+
+  // Auto-save to localStorage every 30s for new posts
+  useEffect(() => {
+    if (isEditing) return;
+
+    const interval = setInterval(() => {
+      const current = formRef.current;
+      // Only save if there's actual content
+      if (current.title || current.content) {
+        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(current));
+        setAutoSaveStatus("saving");
+        setTimeout(() => setAutoSaveStatus("saved"), 500);
+      }
+    }, AUTOSAVE_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [isEditing]);
 
   const saveMutation = useMutation({
     mutationFn: (data: CreatePostRequest) =>
       isEditing ? updatePost(token!, slug!, data) : createPost(token!, data),
     onSuccess: () => {
+      // Clear auto-save on successful save
+      if (!isEditing) {
+        localStorage.removeItem(AUTOSAVE_KEY);
+      }
       queryClient.invalidateQueries({ queryKey: ["admin-posts"] });
       navigate("/admin");
     },
@@ -106,21 +153,78 @@ export function AdminPostEditor() {
     }));
   };
 
+  const handleStatusChange = useCallback(
+    (status: string) => {
+      if (status === "scheduled" && !form.published_at) {
+        // Default to tomorrow at 9:00
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(9, 0, 0, 0);
+        setForm((f) => ({
+          ...f,
+          status,
+          published_at: tomorrow.toISOString(),
+        }));
+      } else if (status !== "scheduled") {
+        setForm((f) => ({ ...f, status, published_at: null }));
+      } else {
+        setForm((f) => ({ ...f, status }));
+      }
+    },
+    [form.published_at],
+  );
+
+  // Word count & estimated reading time (client-side preview)
+  const wordCount = form.content.split(/\s+/).filter(Boolean).length;
+  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-medium">
-          {isEditing ? "Edit Post" : "New Post"}
-        </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-medium">
+            {isEditing ? "Edit Post" : "New Post"}
+          </h2>
+          {autoSaveStatus === "saved" && !isEditing && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Check size={12} />
+              Auto-saved
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock size={12} />
+            {wordCount} words · {readingTime} min
+          </span>
           <select
             value={form.status}
-            onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+            onChange={(e) => handleStatusChange(e.target.value)}
             className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
           >
             <option value="draft">Draft</option>
             <option value="published">Published</option>
+            <option value="scheduled">Scheduled</option>
           </select>
+          {form.status === "scheduled" && (
+            <Input
+              type="datetime-local"
+              value={
+                form.published_at
+                  ? new Date(form.published_at).toISOString().slice(0, 16)
+                  : ""
+              }
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  published_at: e.target.value
+                    ? new Date(e.target.value).toISOString()
+                    : null,
+                }))
+              }
+              className="w-52"
+            />
+          )}
           <Button onClick={handleSave} disabled={saveMutation.isPending}>
             <Save size={16} />
             {saveMutation.isPending ? "Saving..." : "Save"}
@@ -185,7 +289,9 @@ export function AdminPostEditor() {
                 placeholder="Add tag"
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
+                onKeyDown={(e) =>
+                  e.key === "Enter" && (e.preventDefault(), addTag())
+                }
                 className="flex-1"
               />
               <Button variant="outline" size="sm" onClick={addTag}>

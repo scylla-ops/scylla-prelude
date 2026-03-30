@@ -214,8 +214,10 @@ export function LandingPage() {
                             </p>
                           </MorphingDialogTitle>
                           <MorphingDialogSubtitle>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {formatDate(devlog.created_at, locale)}
+                            <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>{formatDate(devlog.created_at, locale)}</span>
+                              <span className="text-border">·</span>
+                              <span>{devlog.reading_time} min</span>
                             </p>
                           </MorphingDialogSubtitle>
                         </div>
@@ -252,8 +254,10 @@ export function LandingPage() {
                             </p>
                           </MorphingDialogTitle>
                           <MorphingDialogSubtitle>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {formatDate(devlog.created_at, locale)}
+                            <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>{formatDate(devlog.created_at, locale)}</span>
+                              <span className="text-border">·</span>
+                              <span>{devlog.reading_time} min</span>
                             </p>
                           </MorphingDialogSubtitle>
                           <MorphingDialogDescription

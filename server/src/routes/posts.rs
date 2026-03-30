@@ -31,7 +31,7 @@ pub async fn list_posts(
         let mut result = state
             .db
             .query(
-                "SELECT slug, locale, title, summary, tags, image, authors, status, created_at
+                "SELECT slug, locale, title, summary, tags, image, authors, reading_time, status, published_at, created_at
                  FROM type::table($table)
                  WHERE status = 'published' AND locale = $locale AND tags CONTAINS $tag
                  ORDER BY created_at DESC LIMIT $limit START $offset",
@@ -47,7 +47,7 @@ pub async fn list_posts(
         let mut result = state
             .db
             .query(
-                "SELECT slug, locale, title, summary, tags, image, authors, status, created_at
+                "SELECT slug, locale, title, summary, tags, image, authors, reading_time, status, published_at, created_at
                  FROM type::table($table)
                  WHERE status = 'published' AND locale = $locale
                  ORDER BY created_at DESC LIMIT $limit START $offset",

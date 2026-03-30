@@ -1,18 +1,11 @@
-mod config;
-mod db;
-mod error;
-mod middleware;
-mod models;
-mod routes;
+use server::config::AppConfig;
+use server::{AppState, api_router, routes, scheduler};
 
-use crate::config::AppConfig;
 use axum::Router;
 use axum::http::header::CACHE_CONTROL;
 use axum::http::{HeaderName, HeaderValue};
-use axum::routing::{delete, get, post, put};
+use axum::routing::get;
 use std::net::SocketAddr;
-use surrealdb::engine::any::Any;
-use surrealdb::Surreal;
 use tower::ServiceBuilder;
 use tower_http::LatencyUnit;
 use tower_http::compression::CompressionLayer;
@@ -24,12 +17,6 @@ use tracing::{Level, info};
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-
-#[derive(Clone)]
-pub struct AppState {
-    pub db: Surreal<Any>,
-    pub config: AppConfig,
-}
 
 #[tokio::main]
 async fn main() {
@@ -52,36 +39,24 @@ async fn main() {
     let config = AppConfig::from_env();
 
     // Initialize SurrealDB
-    let db = db::init_db(&config)
+    let db = server::db::init_db(&config)
         .await
         .expect("Failed to initialize SurrealDB");
 
     let state = AppState {
-        db,
+        db: db.clone(),
         config: config.clone(),
     };
 
+    // Spawn scheduled publication background task
+    scheduler::spawn_publish_scheduler(db);
+
     // API routes
-    let api = Router::new()
-        // Public
-        .route("/health", get(routes::health::check))
-        .route("/posts", get(routes::posts::list_posts))
-        .route("/posts/{slug}", get(routes::posts::get_post))
-        // RSS
-        .route("/rss", get(routes::rss::feed))
-        // Auth
-        .route("/auth/github", get(routes::auth::github_redirect))
-        .route(
-            "/auth/github/callback",
-            get(routes::auth::github_callback),
-        )
-        .route("/auth/me", get(routes::auth::me))
-        // Admin (JWT required)
-        .route("/admin/posts", get(routes::admin::list_all_posts))
-        .route("/admin/posts", post(routes::admin::create_post))
-        .route("/admin/posts/{slug}", put(routes::admin::update_post))
-        .route("/admin/posts/{slug}", delete(routes::admin::delete_post))
-        .route("/admin/upload", post(routes::admin::upload_image))
+    let api = api_router(state.clone());
+
+    // OG meta tags route — serves index.html with injected OG/Twitter tags for social crawlers
+    let og_router = Router::new()
+        .route("/devlogs/{slug}", get(routes::og::devlog_with_meta))
         .with_state(state);
 
     // Static file serving
@@ -103,9 +78,10 @@ async fn main() {
     let assets_router = Router::new().nest_service("/assets", cached_assets);
     let spa_router = Router::new().fallback_service(spa_service);
 
-    // Combine: API first, then static files, then SPA fallback
+    // Combine: API first, then OG meta, then static files, then SPA fallback
     let app = Router::new()
         .nest("/api/v1", api)
+        .merge(og_router)
         .merge(assets_router)
         .merge(spa_router)
         .layer(

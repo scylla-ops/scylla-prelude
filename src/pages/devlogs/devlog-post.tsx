@@ -13,7 +13,7 @@ import {
   AvatarFallback,
   AvatarGroup,
 } from "@/components/ui/avatar";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Clock } from "lucide-react";
 import { fetchPost, formatDate } from "@/lib/api";
 import { getAuthor } from "@/data/authors";
 import { useLocale } from "@/i18n/use-locale";
@@ -88,6 +88,11 @@ export function DevlogPost() {
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">
             {formatDate(devlog.created_at, locale)}
+          </span>
+          <span className="text-xs text-border">·</span>
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock size={12} />
+            {devlog.reading_time} min
           </span>
           {devlog.tags.map((tag) => (
             <Badge key={tag} variant="outline">

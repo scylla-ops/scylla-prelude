@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { fetchAdminPosts, deletePost, formatDate } from "@/lib/api";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Clock } from "lucide-react";
 
 export function AdminDashboard() {
   const { token } = useAuth();
@@ -62,7 +62,9 @@ export function AdminDashboard() {
                 <td className="px-4 py-3">
                   <Badge
                     variant={post.status === "published" ? "default" : "outline"}
+                    className={post.status === "scheduled" ? "border-amber-500/50 text-amber-500" : ""}
                   >
+                    {post.status === "scheduled" && <Clock size={10} className="mr-1" />}
                     {post.status}
                   </Badge>
                 </td>
