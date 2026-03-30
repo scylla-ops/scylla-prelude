@@ -46,5 +46,11 @@
   "admin.autoSaved": "Sauvegardé",
   "admin.status.draft": "Brouillon",
   "admin.status.published": "Publié",
-  "admin.status.scheduled": "Planifié"
+  "admin.status.scheduled": "Planifié",
+  "landing.posts.showingCount": "{count} sur {total}",
+  "landing.posts.loadMore": "Voir plus",
+  "filter.all": "Tous",
+  "filter.tags": "Tags",
+  "filter.clearAll": "Tout effacer",
+  "devlog.toc.title": "Sommaire"
 }

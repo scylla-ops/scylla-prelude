@@ -22,6 +22,7 @@ pub struct CreatePostRequest {
     pub content: String,
     pub tags: Vec<String>,
     pub image: Option<String>,
+    pub image_position: Option<String>,
     pub authors: Vec<String>,
     pub status: String,
     pub published_at: Option<DateTime<Utc>>,
@@ -34,7 +35,7 @@ pub async fn list_all_posts(
     let mut result = state
         .db
         .query(
-            "SELECT slug, locale, title, summary, tags, image, authors, reading_time, status, published_at, created_at
+            "SELECT slug, locale, title, summary, tags, image, image_position, authors, reading_time, status, published_at, created_at
              FROM type::table($table)
              ORDER BY created_at DESC",
         )
@@ -84,6 +85,7 @@ pub async fn create_post(
                 content: $content,
                 tags: $tags,
                 image: $image,
+                image_position: $image_position,
                 authors: $authors,
                 reading_time: $reading_time,
                 status: $status,
@@ -98,6 +100,7 @@ pub async fn create_post(
         .bind(("content", req.content))
         .bind(("tags", req.tags))
         .bind(("image", req.image))
+        .bind(("image_position", req.image_position))
         .bind(("authors", req.authors))
         .bind(("reading_time", reading_time))
         .bind(("status", req.status))
@@ -124,6 +127,7 @@ pub async fn update_post(
                 content = $content,
                 tags = $tags,
                 image = $image,
+                image_position = $image_position,
                 authors = $authors,
                 reading_time = $reading_time,
                 status = $status,
@@ -140,6 +144,7 @@ pub async fn update_post(
         .bind(("content", req.content))
         .bind(("tags", req.tags))
         .bind(("image", req.image))
+        .bind(("image_position", req.image_position))
         .bind(("authors", req.authors))
         .bind(("reading_time", reading_time))
         .bind(("status", req.status))
@@ -171,58 +176,4 @@ pub async fn delete_post(
     Ok(Json(post))
 }
 
-pub async fn upload_image(
-    State(state): State<AppState>,
-    _auth: AuthUser,
-    mut multipart: axum::extract::Multipart,
-) -> Result<Json<serde_json::Value>, AppError> {
-    while let Some(field) = multipart
-        .next_field()
-        .await
-        .map_err(|e| AppError::BadRequest(e.to_string()))?
-    {
-        let filename = field
-            .file_name()
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| "upload".to_string());
-
-        let ext = filename
-            .rsplit('.')
-            .next()
-            .unwrap_or("bin")
-            .to_lowercase();
-
-        if !matches!(ext.as_str(), "png" | "jpg" | "jpeg" | "webp" | "gif") {
-            return Err(AppError::BadRequest(
-                "Only png, jpg, jpeg, webp, gif allowed".into(),
-            ));
-        }
-
-        let data = field
-            .bytes()
-            .await
-            .map_err(|e| AppError::BadRequest(e.to_string()))?;
-
-        if data.len() > 5 * 1024 * 1024 {
-            return Err(AppError::BadRequest("File too large (max 5MB)".into()));
-        }
-
-        let uuid = uuid::Uuid::new_v4();
-        let new_filename = format!("{}.{}", uuid, ext);
-        let upload_dir = &state.config.uploads_path;
-
-        tokio::fs::create_dir_all(upload_dir)
-            .await
-            .map_err(|_| AppError::BadRequest("Cannot create upload directory".into()))?;
-
-        let file_path = format!("{}/{}", upload_dir, new_filename);
-        tokio::fs::write(&file_path, &data)
-            .await
-            .map_err(|_| AppError::BadRequest("Failed to write file".into()))?;
-
-        let url = format!("/images/uploads/{}", new_filename);
-        return Ok(Json(serde_json::json!({ "url": url })));
-    }
-
-    Err(AppError::BadRequest("No file provided".into()))
-}
+// Image upload has moved to routes::media

@@ -15,14 +15,16 @@ pub fn spawn_publish_scheduler(db: Surreal<Any>) {
         let mut interval = tokio::time::interval(Duration::from_secs(60));
         loop {
             interval.tick().await;
-            if let Err(e) = publish_due_posts(&db).await {
+            if let Err(e) = publish_due_posts(&db).await.map(|_| ()) {
                 error!("Scheduler error: {e}");
             }
         }
     });
 }
 
-async fn publish_due_posts(db: &Surreal<Any>) -> surrealdb::Result<()> {
+/// Publish all posts where status = 'scheduled' and published_at <= now.
+/// Returns the number of posts published.
+pub async fn publish_due_posts(db: &Surreal<Any>) -> surrealdb::Result<usize> {
     let mut result = db
         .query(
             "UPDATE type::table($table) SET status = 'published', updated_at = time::now()
@@ -33,6 +35,7 @@ async fn publish_due_posts(db: &Surreal<Any>) -> surrealdb::Result<()> {
         .await?;
 
     let published: Vec<SlugLocale> = result.take(0)?;
+    let count = published.len();
     if !published.is_empty() {
         for p in &published {
             info!("Auto-published: {}/{}", p.slug, p.locale);
@@ -41,7 +44,7 @@ async fn publish_due_posts(db: &Surreal<Any>) -> surrealdb::Result<()> {
         debug!("Scheduler tick: no posts to publish");
     }
 
-    Ok(())
+    Ok(count)
 }
 
 #[derive(serde::Deserialize, surrealdb_types::SurrealValue)]

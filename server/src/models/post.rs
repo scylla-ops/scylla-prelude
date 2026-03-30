@@ -24,6 +24,7 @@ pub struct Post {
     pub content: String,
     pub tags: Vec<String>,
     pub image: Option<String>,
+    pub image_position: Option<String>,
     pub authors: Vec<String>,
     pub reading_time: u32,
     pub status: String,
@@ -40,9 +41,16 @@ pub struct PostSummary {
     pub summary: String,
     pub tags: Vec<String>,
     pub image: Option<String>,
+    pub image_position: Option<String>,
     pub authors: Vec<String>,
     pub reading_time: u32,
     pub status: String,
     pub published_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PaginatedPosts {
+    pub posts: Vec<PostSummary>,
+    pub total: u64,
 }

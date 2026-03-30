@@ -10,14 +10,19 @@ Scylla Prelude is a devblog for the Scylla open-core CI platform. It's a monorep
 
 ### Frontend (from repo root)
 - `bun install` — install dependencies
-- `bun run dev` — start Vite dev server (localhost:5173)
+- `bun run dev` — start Vite dev server (localhost:5173), proxies `/api` to `localhost:8080`
 - `bun run build` — typecheck + build to `dist/`
 - `bun run lint` — ESLint on `.ts`/`.tsx` files
 - `bun run preview` — preview production build
+- `bun run setup` — create `server/.env` from `.env.example`
 
 ### Backend (from `server/`)
 - `cargo build` — build the server
 - `cargo run` — run the server (serves `dist/` on port 8080)
+- `cargo test` — run all integration tests (uses in-memory SurrealDB, no external DB needed)
+- `cargo test <name>` — run a specific test (e.g. `cargo test health_check`, `cargo test scheduler`)
+- `cargo test -- --nocapture` — show println output
+- `cargo test -- --test-threads=1` — run tests serially (for debugging)
 
 ### Docker (from `docker/`)
 - `docker compose up` — run production image behind reverse proxy
@@ -25,11 +30,22 @@ Scylla Prelude is a devblog for the Scylla open-core CI platform. It's a monorep
 
 ## Architecture
 
-**Frontend** (`src/`): React 19 + React Router + Vite. Pages are in `src/pages/`, layout components in `src/components/layout/`, and UI primitives in `src/components/ui/` (shadcn/ui based on Radix). Styling uses Tailwind CSS 4. Animations use the `motion` library.
+**Frontend** (`src/`): React 19 + React Router + Vite. Pages are in `src/pages/`, layout components in `src/components/layout/`, and UI primitives in `src/components/ui/` (shadcn/ui based on Radix). Styling uses Tailwind CSS 4. Animations use the `motion` library. Data fetching via `@tanstack/react-query` with API client in `src/lib/api.ts`.
 
-**Backend** (`server/`): Axum web server with SurrealDB 3. Serves the SPA from `dist/` with fallback routing, applies security headers (CSP, X-Frame-Options, etc.), compression, and request tracing. API routes under `/api/v1/` include public post endpoints, RSS feed, GitHub OAuth auth, and admin CRUD. Config via env vars in `server/.env` (see `server/.env.example`).
+**Backend** (`server/`): Axum web server with SurrealDB 3. Config via env vars in `server/.env` (see `server/.env.example`). Key modules:
+- `routes/posts.rs` — public GET endpoints (list, get by slug, filtered by locale/tag)
+- `routes/admin.rs` — JWT-protected CRUD (create, read, update, delete posts, upload images)
+- `routes/auth.rs` — GitHub OAuth flow + JWT generation
+- `routes/rss.rs` — RSS feed
+- `routes/og.rs` — OG meta tag injection for social crawlers
+- `scheduler.rs` — background task that auto-publishes scheduled posts every 60s
+- `db/schema.surql` — SurrealDB schema definitions
 
-**Content**: Blog posts are stored in SurrealDB (table `post`), managed via the admin UI at `/admin`. Each post has separate entries per locale (slug + locale = unique key). Posts are fetched from the API using `@tanstack/react-query` and rendered with `react-markdown`.
+**Auth flow**: GitHub OAuth → JWT. Admin access restricted to GitHub usernames listed in `ADMIN_GITHUB_USERNAMES` env var.
+
+**Content model**: Posts live in SurrealDB table `post`. Composite unique key is `(slug, locale)`. Post statuses: `draft` → `published` or `scheduled`. Scheduled posts have a `published_at` timestamp and are auto-published by the background scheduler when due. Reading time is computed automatically on create/update.
+
+**Testing** (`server/tests/api_integration.rs`): Integration tests use `axum-test` with an in-memory SurrealDB (`mem://`). Helper functions provide test app setup, JWT generation, and DB access. No external database required.
 
 **Docker** (`docker/`): Multi-stage build — Bun builds frontend, Rust compiles server, both go into a minimal Alpine image.
 

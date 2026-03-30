@@ -26,6 +26,7 @@ pub fn api_router(state: AppState) -> Router {
         .route("/health", get(routes::health::check))
         .route("/posts", get(routes::posts::list_posts))
         .route("/posts/{slug}", get(routes::posts::get_post))
+        .route("/tags", get(routes::posts::list_tags))
         // RSS
         .route("/rss", get(routes::rss::feed))
         // Auth
@@ -41,6 +42,12 @@ pub fn api_router(state: AppState) -> Router {
         .route("/admin/posts/{slug}", get(routes::admin::get_post))
         .route("/admin/posts/{slug}", put(routes::admin::update_post))
         .route("/admin/posts/{slug}", delete(routes::admin::delete_post))
-        .route("/admin/upload", post(routes::admin::upload_image))
+        .route("/admin/upload", post(routes::media::upload_image))
+        .route("/admin/media", get(routes::media::list_media))
+        .route("/admin/media/{id}", delete(routes::media::delete_media))
+        .route("/admin/tags", get(routes::media::list_tags))
+        .route("/admin/tags/color", put(routes::media::upsert_tag_color))
+        // Public media serving from DB with cache headers
+        .route("/media/{id}/raw", get(routes::media::serve_image))
         .with_state(state)
 }

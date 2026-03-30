@@ -46,5 +46,11 @@
   "admin.autoSaved": "Auto-saved",
   "admin.status.draft": "Draft",
   "admin.status.published": "Published",
-  "admin.status.scheduled": "Scheduled"
+  "admin.status.scheduled": "Scheduled",
+  "landing.posts.showingCount": "Showing {count} of {total}",
+  "landing.posts.loadMore": "Load more",
+  "filter.all": "All",
+  "filter.tags": "Tags",
+  "filter.clearAll": "Clear all",
+  "devlog.toc.title": "Table of contents"
 }

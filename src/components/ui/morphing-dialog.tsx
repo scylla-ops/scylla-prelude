@@ -16,6 +16,7 @@ import {
   type Variant,
 } from "motion/react";
 import { createPortal } from "react-dom";
+import { ImageOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type MorphingDialogContextType = {
@@ -203,6 +204,29 @@ function MorphingDialogImage({
   );
 }
 
+function MorphingDialogPlaceholder({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const { uniqueId } = useMorphingDialog();
+
+  return (
+    <motion.div
+      className={cn(
+        "flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5",
+        className,
+      )}
+      layoutId={`morphing-dialog-img-${uniqueId}`}
+      style={style}
+    >
+      <ImageOff className="size-8 text-muted-foreground/40" />
+    </motion.div>
+  );
+}
+
 function MorphingDialogTitle({
   children,
   className,
@@ -343,4 +367,5 @@ export {
   MorphingDialogSubtitle,
   MorphingDialogDescription,
   MorphingDialogImage,
+  MorphingDialogPlaceholder,
 };
