@@ -37,5 +37,9 @@
   "legal.hosting.title": "Hosting",
   "legal.hosting.body": "This website is hosted on a server provided by Epitech, 24 rue Pasteur, 94270 Le Kremlin-Bicêtre, France.",
   "legal.data.title": "Personal Data",
-  "legal.data.body": "This website does not collect any personal data. No cookies, analytics, or tracking tools are used. Language and theme preferences are stored locally in your browser and are never transmitted to any server."
+  "legal.data.body": "This website does not collect any personal data. No cookies, analytics, or tracking tools are used. Language and theme preferences are stored locally in your browser and are never transmitted to any server.",
+  "admin.title": "Admin",
+  "admin.loginSubtitle": "Sign in to manage posts",
+  "admin.loginButton": "Continue with GitHub",
+  "admin.dashboard": "Dashboard"
 }

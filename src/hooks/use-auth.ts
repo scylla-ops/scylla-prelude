@@ -17,7 +17,11 @@ interface AuthState {
 
 function decodeJwtPayload(token: string): AuthUser | null {
   try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
+    const base64 = token.split(".")[1];
+    // atob() decodes as Latin-1 — we need to handle UTF-8 properly
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    const json = new TextDecoder().decode(bytes);
+    const payload = JSON.parse(json);
     return {
       username: payload.sub,
       name: payload.name,

@@ -37,5 +37,9 @@
   "legal.hosting.title": "Hébergement",
   "legal.hosting.body": "Ce site est hébergé sur un serveur mis à disposition par Epitech, 24 rue Pasteur, 94270 Le Kremlin-Bicêtre, France.",
   "legal.data.title": "Données personnelles",
-  "legal.data.body": "Ce site ne collecte aucune donnée personnelle. Aucun cookie, outil d'analyse ou de suivi n'est utilisé. Les préférences de langue et de thème sont stockées localement dans votre navigateur et ne sont jamais transmises à un serveur."
+  "legal.data.body": "Ce site ne collecte aucune donnée personnelle. Aucun cookie, outil d'analyse ou de suivi n'est utilisé. Les préférences de langue et de thème sont stockées localement dans votre navigateur et ne sont jamais transmises à un serveur.",
+  "admin.title": "Admin",
+  "admin.loginSubtitle": "Connectez-vous pour gérer les articles",
+  "admin.loginButton": "Continuer avec GitHub",
+  "admin.dashboard": "Tableau de bord"
 }
