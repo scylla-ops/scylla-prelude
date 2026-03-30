@@ -1,0 +1,14 @@
+DEFINE TABLE IF NOT EXISTS post SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS slug       ON post TYPE string;
+DEFINE FIELD IF NOT EXISTS locale     ON post TYPE string ASSERT $value IN ["en", "fr"];
+DEFINE FIELD IF NOT EXISTS title      ON post TYPE string;
+DEFINE FIELD IF NOT EXISTS summary    ON post TYPE string;
+DEFINE FIELD IF NOT EXISTS content    ON post TYPE string;
+DEFINE FIELD IF NOT EXISTS tags       ON post TYPE array<string>;
+DEFINE FIELD IF NOT EXISTS image      ON post TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS authors    ON post TYPE array<string>;
+DEFINE FIELD IF NOT EXISTS status     ON post TYPE string ASSERT $value IN ["draft", "published"] DEFAULT "draft";
+DEFINE FIELD IF NOT EXISTS created_at ON post TYPE datetime DEFAULT time::now();
+DEFINE FIELD IF NOT EXISTS updated_at ON post TYPE datetime DEFAULT time::now();
+DEFINE INDEX IF NOT EXISTS idx_post_slug_locale ON post FIELDS slug, locale UNIQUE;
+DEFINE INDEX IF NOT EXISTS idx_post_status ON post FIELDS status, locale, created_at;

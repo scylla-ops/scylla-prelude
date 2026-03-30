@@ -1,10 +1,18 @@
 mod config;
+mod db;
+mod error;
+mod middleware;
+mod models;
+mod routes;
 
 use crate::config::AppConfig;
 use axum::Router;
 use axum::http::header::CACHE_CONTROL;
 use axum::http::{HeaderName, HeaderValue};
+use axum::routing::{delete, get, post, put};
 use std::net::SocketAddr;
+use surrealdb::engine::remote::ws::Client;
+use surrealdb::Surreal;
 use tower::ServiceBuilder;
 use tower_http::LatencyUnit;
 use tower_http::compression::CompressionLayer;
@@ -16,6 +24,12 @@ use tracing::{Level, info};
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+
+#[derive(Clone)]
+pub struct AppState {
+    pub db: Surreal<Client>,
+    pub config: AppConfig,
+}
 
 #[tokio::main]
 async fn main() {
@@ -37,6 +51,40 @@ async fn main() {
 
     let config = AppConfig::from_env();
 
+    // Initialize SurrealDB
+    let db = db::init_db(&config)
+        .await
+        .expect("Failed to initialize SurrealDB");
+
+    let state = AppState {
+        db,
+        config: config.clone(),
+    };
+
+    // API routes
+    let api = Router::new()
+        // Public
+        .route("/health", get(routes::health::check))
+        .route("/posts", get(routes::posts::list_posts))
+        .route("/posts/{slug}", get(routes::posts::get_post))
+        // RSS
+        .route("/rss", get(routes::rss::feed))
+        // Auth
+        .route("/auth/github", get(routes::auth::github_redirect))
+        .route(
+            "/auth/github/callback",
+            get(routes::auth::github_callback),
+        )
+        .route("/auth/me", get(routes::auth::me))
+        // Admin (JWT required)
+        .route("/admin/posts", get(routes::admin::list_all_posts))
+        .route("/admin/posts", post(routes::admin::create_post))
+        .route("/admin/posts/{slug}", put(routes::admin::update_post))
+        .route("/admin/posts/{slug}", delete(routes::admin::delete_post))
+        .route("/admin/upload", post(routes::admin::upload_image))
+        .with_state(state);
+
+    // Static file serving
     let x_request_id = HeaderName::from_static("x-request-id");
     let index_path = format!("{}/index.html", config.dist_path);
 
@@ -53,10 +101,11 @@ async fn main() {
     let spa_service = ServeDir::new(&config.dist_path).fallback(ServeFile::new(index_path));
 
     let assets_router = Router::new().nest_service("/assets", cached_assets);
-
     let spa_router = Router::new().fallback_service(spa_service);
 
+    // Combine: API first, then static files, then SPA fallback
     let app = Router::new()
+        .nest("/api/v1", api)
         .merge(assets_router)
         .merge(spa_router)
         .layer(
@@ -94,10 +143,7 @@ async fn main() {
             ),
         ))
         .layer(CompressionLayer::new())
-        .layer(SetRequestIdLayer::new(
-            x_request_id,
-            MakeRequestUuid,
-        ));
+        .layer(SetRequestIdLayer::new(x_request_id, MakeRequestUuid));
 
     let addr = SocketAddr::from((config.host, config.port));
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
