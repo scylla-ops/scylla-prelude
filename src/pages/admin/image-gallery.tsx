@@ -23,22 +23,20 @@ export function ImageGallery({
   open,
   onClose,
   onSelect,
-  token,
 }: {
   open: boolean;
   onClose: () => void;
   onSelect: (url: string) => void;
-  token: string;
 }) {
   const queryClient = useQueryClient();
   const { data: media = [], isLoading } = useQuery({
     queryKey: ["admin-media"],
-    queryFn: () => fetchMedia(token),
+    queryFn: () => fetchMedia(),
     enabled: open,
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: string) => deleteMedia(token, id),
+    mutationFn: (id: string) => deleteMedia(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-media"] }),
   });
 
@@ -50,7 +48,7 @@ export function ImageGallery({
     setUploading(true);
     try {
       const resized = await resizeImage(file);
-      const result = await uploadImage(token, resized);
+      const result = await uploadImage(resized);
       queryClient.invalidateQueries({ queryKey: ["admin-media"] });
       onSelect(result.url);
       onClose();

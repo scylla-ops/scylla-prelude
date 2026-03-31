@@ -1,79 +1,40 @@
-import { useState, useCallback, useMemo } from "react";
-
-interface AuthUser {
-  username: string;
-  name: string;
-  avatar_url: string;
-}
+import { useState, useCallback, useEffect } from "react";
+import { fetchMe, apiLogout } from "@/lib/api";
+import type { AuthUser } from "@/lib/api";
 
 interface AuthState {
   user: AuthUser | null;
-  token: string | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: () => void;
   logout: () => void;
-  setToken: (token: string) => void;
-}
-
-function decodeJwtPayload(token: string): AuthUser | null {
-  try {
-    const base64 = token.split(".")[1];
-    // atob() decodes as Latin-1 — we need to handle UTF-8 properly
-    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-    const json = new TextDecoder().decode(bytes);
-    const payload = JSON.parse(json);
-    return {
-      username: payload.sub,
-      name: payload.name,
-      avatar_url: payload.avatar_url,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function consumeTokenCookie(): string | null {
-  const match = document.cookie.match(/(?:^|;\s*)admin_token=([^;]+)/);
-  if (!match) return null;
-  const token = match[1];
-  // Delete the cookie immediately
-  document.cookie = "admin_token=; Path=/; Max-Age=0";
-  return token;
 }
 
 export function useAuth(): AuthState {
-  const [token, setTokenState] = useState<string | null>(() => {
-    // Check for a token cookie set by the OAuth callback
-    const cookieToken = consumeTokenCookie();
-    if (cookieToken) {
-      localStorage.setItem("admin_token", cookieToken);
-      return cookieToken;
-    }
-    return localStorage.getItem("admin_token");
-  });
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const user = useMemo(() => (token ? decodeJwtPayload(token) : null), [token]);
-
-  const setToken = useCallback((newToken: string) => {
-    localStorage.setItem("admin_token", newToken);
-    setTokenState(newToken);
+  useEffect(() => {
+    fetchMe()
+      .then(setUser)
+      .catch(() => setUser(null))
+      .finally(() => setIsLoading(false));
   }, []);
 
   const login = useCallback(() => {
     window.location.href = "/api/v1/auth/github";
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem("admin_token");
-    setTokenState(null);
+  const logout = useCallback(async () => {
+    await apiLogout();
+    setUser(null);
   }, []);
 
   return {
     user,
-    token,
     isAuthenticated: !!user,
+    isLoading,
     login,
     logout,
-    setToken,
   };
 }

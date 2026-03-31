@@ -47,6 +47,12 @@ export interface MediaItem {
   created_at: string;
 }
 
+export interface AuthUser {
+  username: string;
+  name: string;
+  avatar_url: string;
+}
+
 const API_BASE = "/api/v1";
 
 export async function fetchPosts(
@@ -83,13 +89,13 @@ export async function fetchPublicTags(locale: string): Promise<TagInfo[]> {
 }
 
 export async function upsertTagColor(
-  token: string,
   name: string,
   color: string,
 ): Promise<void> {
   const res = await fetch(`${API_BASE}/admin/tags/color`, {
     method: "PUT",
-    headers: authHeaders(token),
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
     body: JSON.stringify({ name, color }),
   });
   if (!res.ok) throw new Error(await extractApiError(res, "Failed to update tag color"));
@@ -103,10 +109,6 @@ export async function fetchPost(
   const res = await fetch(`${API_BASE}/posts/${slug}?${params}`);
   if (!res.ok) throw new Error(await extractApiError(res, "Post not found"));
   return res.json();
-}
-
-function authHeaders(token: string): HeadersInit {
-  return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 }
 
 async function extractApiError(res: Response, fallback: string): Promise<string> {
@@ -126,28 +128,26 @@ async function extractApiError(res: Response, fallback: string): Promise<string>
 }
 
 export async function fetchAdminPost(
-  token: string,
   slug: string,
   locale: string,
 ): Promise<Post> {
   const params = new URLSearchParams({ locale });
   const res = await fetch(`${API_BASE}/admin/posts/${slug}?${params}`, {
-    headers: authHeaders(token),
+    credentials: "same-origin",
   });
   if (!res.ok) throw new Error(await extractApiError(res, "Post not found"));
   return res.json();
 }
 
-export async function fetchAdminPosts(token: string): Promise<PostSummary[]> {
+export async function fetchAdminPosts(): Promise<PostSummary[]> {
   const res = await fetch(`${API_BASE}/admin/posts`, {
-    headers: authHeaders(token),
+    credentials: "same-origin",
   });
   if (!res.ok) throw new Error(await extractApiError(res, "Failed to fetch admin posts"));
   return res.json();
 }
 
 export async function createPost(
-  token: string,
   data: CreatePostRequest,
 ): Promise<Post> {
   const controller = new AbortController();
@@ -155,7 +155,8 @@ export async function createPost(
   try {
     const res = await fetch(`${API_BASE}/admin/posts`, {
       method: "POST",
-      headers: authHeaders(token),
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
       body: JSON.stringify(data),
       signal: controller.signal,
     });
@@ -169,7 +170,6 @@ export async function createPost(
 }
 
 export async function updatePost(
-  token: string,
   slug: string,
   data: CreatePostRequest,
 ): Promise<Post> {
@@ -178,7 +178,8 @@ export async function updatePost(
   try {
     const res = await fetch(`${API_BASE}/admin/posts/${slug}`, {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
       body: JSON.stringify(data),
       signal: controller.signal,
     });
@@ -192,7 +193,6 @@ export async function updatePost(
 }
 
 export async function patchPostStatus(
-  token: string,
   slug: string,
   locale: string,
   status: string,
@@ -200,7 +200,8 @@ export async function patchPostStatus(
 ): Promise<Post> {
   const res = await fetch(`${API_BASE}/admin/posts/${slug}/status`, {
     method: "PATCH",
-    headers: authHeaders(token),
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
     body: JSON.stringify({ locale, status, published_at: published_at ?? null }),
   });
   if (!res.ok) {
@@ -210,14 +211,13 @@ export async function patchPostStatus(
 }
 
 export async function deletePost(
-  token: string,
   slug: string,
   locale: string,
 ): Promise<void> {
   const params = new URLSearchParams({ locale });
   const res = await fetch(`${API_BASE}/admin/posts/${slug}?${params}`, {
     method: "DELETE",
-    headers: authHeaders(token),
+    credentials: "same-origin",
   });
   if (!res.ok) throw new Error(await extractApiError(res, "Failed to delete post"));
 }
@@ -225,45 +225,58 @@ export async function deletePost(
 // --- Media ---
 
 export async function uploadImage(
-  token: string,
   file: File,
 ): Promise<MediaItem> {
   const form = new FormData();
   form.append("file", file);
   const res = await fetch(`${API_BASE}/admin/upload`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
+    credentials: "same-origin",
     body: form,
   });
   if (!res.ok) throw new Error(await extractApiError(res, "Failed to upload image"));
   return res.json();
 }
 
-export async function fetchMedia(token: string): Promise<MediaItem[]> {
+export async function fetchMedia(): Promise<MediaItem[]> {
   const res = await fetch(`${API_BASE}/admin/media`, {
-    headers: authHeaders(token),
+    credentials: "same-origin",
   });
   if (!res.ok) throw new Error(await extractApiError(res, "Failed to fetch media"));
   return res.json();
 }
 
 export async function deleteMedia(
-  token: string,
   id: string,
 ): Promise<void> {
   const res = await fetch(`${API_BASE}/admin/media/${id}`, {
     method: "DELETE",
-    headers: authHeaders(token),
+    credentials: "same-origin",
   });
   if (!res.ok) throw new Error(await extractApiError(res, "Failed to delete media"));
 }
 
-export async function fetchTags(token: string): Promise<string[]> {
+export async function fetchTags(): Promise<string[]> {
   const res = await fetch(`${API_BASE}/admin/tags`, {
-    headers: authHeaders(token),
+    credentials: "same-origin",
   });
   if (!res.ok) throw new Error(await extractApiError(res, "Failed to fetch tags"));
   return res.json();
+}
+
+export async function fetchMe(): Promise<AuthUser> {
+  const res = await fetch(`${API_BASE}/auth/me`, {
+    credentials: "same-origin",
+  });
+  if (!res.ok) throw new Error("Not authenticated");
+  return res.json();
+}
+
+export async function apiLogout(): Promise<void> {
+  await fetch(`${API_BASE}/auth/logout`, {
+    method: "POST",
+    credentials: "same-origin",
+  });
 }
 
 // --- Utilities ---

@@ -1,5 +1,6 @@
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
+use axum_extra::extract::CookieJar;
 use jsonwebtoken::{DecodingKey, Validation, decode};
 use serde::{Deserialize, Serialize};
 
@@ -28,20 +29,28 @@ impl FromRequestParts<AppState> for AuthUser {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let auth_header = parts
-            .headers
-            .get("authorization")
-            .and_then(|v| v.to_str().ok())
-            .ok_or(AppError::Unauthorized)?;
+        // Try cookie first, then fall back to Authorization header
+        let jar = CookieJar::from_request_parts(parts, state)
+            .await
+            .map_err(|_| AppError::Unauthorized)?;
 
-        let token = auth_header
-            .strip_prefix("Bearer ")
+        let token = jar
+            .get("admin_token")
+            .map(|c| c.value().to_owned())
+            .or_else(|| {
+                parts
+                    .headers
+                    .get("authorization")
+                    .and_then(|v| v.to_str().ok())
+                    .and_then(|h| h.strip_prefix("Bearer "))
+                    .map(|t| t.to_owned())
+            })
             .ok_or(AppError::Unauthorized)?;
 
         let key = DecodingKey::from_secret(state.config.jwt_secret.as_bytes());
         let validation = Validation::default();
 
-        let token_data = decode::<Claims>(token, &key, &validation)
+        let token_data = decode::<Claims>(&token, &key, &validation)
             .map_err(|_| AppError::Unauthorized)?;
 
         Ok(AuthUser {

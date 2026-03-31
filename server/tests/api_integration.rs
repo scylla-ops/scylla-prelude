@@ -42,7 +42,7 @@ async fn test_app() -> TestServer {
         config: test_config(),
     };
     let api = server::api_router(state);
-    TestServer::new(api).unwrap()
+    TestServer::new(api)
 }
 
 /// Create a test app + return the DB handle for direct DB operations (scheduler tests)
@@ -53,7 +53,7 @@ async fn test_app_with_db() -> (TestServer, Surreal<Any>) {
         config: test_config(),
     };
     let api = server::api_router(state);
-    (TestServer::new(api).unwrap(), db)
+    (TestServer::new(api), db)
 }
 
 /// Generate a valid JWT for test requests

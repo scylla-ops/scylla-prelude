@@ -1,6 +1,6 @@
 use axum::Json;
 use axum::extract::{Query, State};
-use axum::response::Redirect;
+use axum::response::{IntoResponse, Redirect};
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use jsonwebtoken::{EncodingKey, Header, encode};
 use serde::Deserialize;
@@ -98,11 +98,12 @@ pub async fn github_callback(
     let jwt = encode(&Header::default(), &claims, &key)
         .map_err(|_| AppError::BadRequest("JWT encoding failed".into()))?;
 
-    // Set token in a short-lived cookie and redirect to admin
+    // Set HttpOnly cookie scoped to API path, 7 days
     let cookie = Cookie::build(("admin_token", jwt))
-        .path("/")
-        .max_age(time::Duration::seconds(60))
-        .same_site(SameSite::Lax);
+        .path("/api/v1")
+        .http_only(true)
+        .same_site(SameSite::Lax)
+        .max_age(time::Duration::days(7));
 
     let redirect_url = format!("{}/admin", state.config.app_url);
     Ok((jar.add(cookie), Redirect::temporary(&redirect_url)))
@@ -114,4 +115,14 @@ pub async fn me(auth: AuthUser) -> Json<serde_json::Value> {
         "name": auth.name,
         "avatar_url": auth.avatar_url,
     }))
+}
+
+pub async fn logout(jar: CookieJar) -> impl IntoResponse {
+    let cookie = Cookie::build(("admin_token", ""))
+        .path("/api/v1")
+        .http_only(true)
+        .same_site(SameSite::Lax)
+        .max_age(time::Duration::seconds(0));
+
+    (jar.add(cookie), axum::http::StatusCode::NO_CONTENT)
 }

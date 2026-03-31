@@ -15,7 +15,6 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { useAuth } from "@/hooks/use-auth";
 import {
   fetchAdminPost,
   createPost,
@@ -57,7 +56,6 @@ export function AdminPostEditor() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { token } = useAuth();
   const queryClient = useQueryClient();
   const isEditing = !!slug;
   const editLocale = searchParams.get("locale") || "en";
@@ -89,8 +87,7 @@ export function AdminPostEditor() {
   // Fetch existing tags for suggestions
   const { data: existingTags = [], isLoading: isLoadingTags } = useQuery({
     queryKey: ["admin-tags"],
-    queryFn: () => fetchTags(token!),
-    enabled: !!token,
+    queryFn: () => fetchTags(),
     staleTime: 0,
   });
 
@@ -110,7 +107,7 @@ export function AdminPostEditor() {
 
   const colorMutation = useMutation({
     mutationFn: ({ name, color }: { name: string; color: string }) =>
-      upsertTagColor(token!, name, color),
+      upsertTagColor(name, color),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tags"] });
     },
@@ -153,8 +150,8 @@ export function AdminPostEditor() {
   // Load from existing post when editing
   const { data: existingPost, isLoading: isLoadingPost } = useQuery({
     queryKey: ["admin-post", slug, editLocale],
-    queryFn: () => fetchAdminPost(token!, slug!, editLocale),
-    enabled: isEditing && !!token,
+    queryFn: () => fetchAdminPost(slug!, editLocale),
+    enabled: isEditing,
     retry: false,
   });
 
@@ -206,7 +203,7 @@ export function AdminPostEditor() {
 
   const saveMutation = useMutation({
     mutationFn: (data: CreatePostRequest) =>
-      isEditing ? updatePost(token!, slug!, data) : createPost(token!, data),
+      isEditing ? updatePost(slug!, data) : createPost(data),
     onSuccess: async () => {
       if (!isEditing) localStorage.removeItem(AUTOSAVE_KEY);
       await Promise.all([
@@ -228,11 +225,11 @@ export function AdminPostEditor() {
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !token) return;
+    if (!file) return;
     setImageUploading(true);
     try {
       const resized = await resizeImage(file);
-      const result = await uploadImage(token, resized);
+      const result = await uploadImage(resized);
       setForm((f) => ({ ...f, image: result.url }));
       setImageError(false);
       queryClient.invalidateQueries({ queryKey: ["admin-media"] });
@@ -766,17 +763,14 @@ export function AdminPostEditor() {
       </AnimatePresence>
 
       {/* Image Gallery Modal */}
-      {token && (
-        <ImageGallery
-          open={galleryOpen}
-          onClose={() => setGalleryOpen(false)}
-          onSelect={(url) => {
-            setForm((f) => ({ ...f, image: url }));
-            setImageError(false);
-          }}
-          token={token}
-        />
-      )}
+      <ImageGallery
+        open={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
+        onSelect={(url) => {
+          setForm((f) => ({ ...f, image: url }));
+          setImageError(false);
+        }}
+      />
     </div>
   );
 }

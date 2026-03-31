@@ -14,7 +14,6 @@ import {
   AlertDialogCancel,
   AlertDialogMedia,
 } from "@/components/ui/alert-dialog";
-import { useAuth } from "@/hooks/use-auth";
 import {
   fetchAdminPosts,
   deletePost,
@@ -211,7 +210,6 @@ function PostRow({
 }
 
 export function AdminDashboard() {
-  const { token } = useAuth();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [deleteTarget, setDeleteTarget] = useState<{
@@ -222,8 +220,7 @@ export function AdminDashboard() {
 
   const { data: posts, isLoading } = useQuery({
     queryKey: ["admin-posts"],
-    queryFn: () => fetchAdminPosts(token!),
-    enabled: !!token,
+    queryFn: () => fetchAdminPosts(),
   });
 
   const filteredPosts = useMemo(() => {
@@ -244,7 +241,7 @@ export function AdminDashboard() {
 
   const statusMutation = useMutation({
     mutationFn: ({ slug, locale, status, published_at }: { slug: string; locale: string; status: string; published_at?: string | null }) =>
-      patchPostStatus(token!, slug, locale, status, published_at),
+      patchPostStatus(slug, locale, status, published_at),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["admin-posts"] });
       toast.success(`Post switched to ${variables.status}`);
@@ -256,7 +253,7 @@ export function AdminDashboard() {
 
   const deleteMutation = useMutation({
     mutationFn: ({ slug, locale }: { slug: string; locale: string }) =>
-      deletePost(token!, slug, locale),
+      deletePost(slug, locale),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-posts"] });
       setDeleteTarget(null);

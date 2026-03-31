@@ -1,23 +1,20 @@
-import { useEffect } from "react";
-import { Outlet, Link, useSearchParams, useNavigate } from "react-router";
+import { Outlet, Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocale } from "@/i18n/use-locale";
-import { LogOut, LayoutDashboard, Github } from "lucide-react";
+import { LogOut, LayoutDashboard, Github, Loader2 } from "lucide-react";
 
 export function AdminLayout() {
-  const { user, isAuthenticated, login, logout, setToken } = useAuth();
+  const { user, isAuthenticated, isLoading, login, logout } = useAuth();
   const { t } = useLocale();
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    const token = searchParams.get("token");
-    if (token) {
-      setToken(token);
-      navigate("/admin", { replace: true });
-    }
-  }, [searchParams, setToken, navigate]);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (

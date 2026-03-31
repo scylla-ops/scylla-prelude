@@ -38,6 +38,7 @@ pub fn api_router(state: AppState) -> Router {
             get(routes::auth::github_callback),
         )
         .route("/auth/me", get(routes::auth::me))
+        .route("/auth/logout", post(routes::auth::logout))
         // Admin (JWT required)
         .route("/admin/posts", get(routes::admin::list_all_posts))
         .route("/admin/posts", post(routes::admin::create_post))
