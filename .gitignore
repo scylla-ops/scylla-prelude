@@ -26,3 +26,9 @@ dist-ssr
 .venv
 target
 .env
+
+# SurrealDB data
+server/data/
+
+# GitHub workflows (managed separately)
+.github/
