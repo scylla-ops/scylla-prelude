@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ExpandableSearch } from "@/components/ui/expandable-search";
 import {
+  useMorphingDialog,
   MorphingDialog,
   MorphingDialogTrigger,
   MorphingDialogContainer,
@@ -25,6 +26,12 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 const easeOutSine = [0.39, 0.575, 0.565, 1] as const;
 const staggerDelay = 0.12;
 const POSTS_PER_PAGE = 9;
+
+function CardExtras({ children }: { children: React.ReactNode }) {
+  const { isOpen } = useMorphingDialog();
+  if (isOpen) return null;
+  return <>{children}</>;
+}
 
 function HighlightMatch({
   text,
@@ -239,13 +246,13 @@ export function LandingPage() {
           <section className="flex flex-col gap-5">
             {/* Header row: title + search */}
             <div className="flex items-center gap-3">
-              <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+              <h3 className="shrink-0 text-xs font-medium uppercase tracking-widest text-muted-foreground">
                 {t("landing.posts.title")}
               </h3>
 
               {/* Post count */}
               {total > 0 && (
-                <span className="text-[11px] text-muted-foreground/60">
+                <span className="min-w-0 truncate text-[11px] text-muted-foreground/60">
                   {t("landing.posts.showingCount")
                     .replace("{count}", String(allPosts.length))
                     .replace("{total}", String(total))}
@@ -371,7 +378,7 @@ export function LandingPage() {
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                   {allPosts.map((devlog) => (
                     <MorphingDialog key={`${devlog.slug}-${devlog.locale}`}>
-                      <div className="group overflow-hidden rounded-xl ring-1 ring-foreground/10 bg-card transition-shadow duration-200 hover:shadow-md hover:ring-foreground/20">
+                      <div className="group isolate overflow-hidden rounded-xl ring-1 ring-foreground/10 bg-card transition-shadow duration-200 hover:shadow-md hover:ring-foreground/20">
                         <MorphingDialogTrigger className="w-full cursor-pointer text-left">
                           {devlog.image ? (
                             <MorphingDialogImage
@@ -396,6 +403,7 @@ export function LandingPage() {
                             </MorphingDialogTitle>
                           </div>
                         </MorphingDialogTrigger>
+                        <CardExtras>
                         {devlog.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 px-5 pb-2">
                             {devlog.tags.slice(0, 3).map((tagName) => {
@@ -446,6 +454,7 @@ export function LandingPage() {
                             </Link>
                           </Button>
                         </div>
+                        </CardExtras>
                       </div>
 
                       <MorphingDialogContainer>

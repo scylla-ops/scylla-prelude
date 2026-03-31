@@ -19,13 +19,15 @@ RUN bun run build
 # ==========================================
 # Étape 2 : Build Backend (Rust)
 # ==========================================
-FROM rust:alpine3.23 AS backend-build
+FROM rust:bookworm AS backend-build
 
 ARG TARGETARCH
 
 WORKDIR /app
 
-RUN apk add --no-cache musl-dev pkgconfig openssl-dev
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	pkg-config libssl-dev libclang-dev && \
+	rm -rf /var/lib/apt/lists/*
 
 COPY server/ ./server/
 
@@ -40,11 +42,13 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,id=cargo-registry-${TARG
 # ==========================================
 # Étape 3 : Final Image
 # ==========================================
-FROM alpine:latest
+FROM debian:bookworm-slim
 
 LABEL authors="sebastienlucas"
 
-RUN apk add --no-cache libgcc ca-certificates
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	ca-certificates && \
+	rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

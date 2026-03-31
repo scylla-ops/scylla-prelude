@@ -1,8 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { motion } from "motion/react";
-import { Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Search, X } from "lucide-react";
 
 function ExpandableSearch({
   value,
@@ -36,32 +33,32 @@ function ExpandableSearch({
   }, [open]);
 
   return (
-    <motion.div
-      ref={containerRef}
-      className={`flex shrink-0 items-center overflow-hidden ${open ? "border-input rounded-md border bg-input/20 dark:bg-input/30" : ""}`}
-      initial={false}
-      animate={{ width: open ? "65%" : "auto" }}
-      transition={{ type: "spring", bounce: 0.05, duration: 0.3 }}
-    >
-      {open ? (
-        <Input
+    <div ref={containerRef} className="flex h-8 items-center">
+      <div
+        className={`flex h-8 items-center overflow-hidden rounded-md transition-all duration-200 ease-out ${
+          open
+            ? "w-44 border border-input bg-background"
+            : "w-8"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          aria-label={open ? "Close search" : "Search"}
+          className="flex size-8 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
+        >
+          {open ? <X size={14} /> : <Search size={16} />}
+        </button>
+        <input
           ref={inputRef}
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-auto w-full rounded-none border-0 bg-transparent text-xs shadow-none focus-visible:ring-0"
+          className="h-8 min-w-0 flex-1 bg-transparent pr-2 text-xs outline-none placeholder:text-muted-foreground/60"
+          tabIndex={open ? 0 : -1}
         />
-      ) : (
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => setOpen(true)}
-          aria-label="Search"
-        >
-          <Search size={16} />
-        </Button>
-      )}
-    </motion.div>
+      </div>
+    </div>
   );
 }
 

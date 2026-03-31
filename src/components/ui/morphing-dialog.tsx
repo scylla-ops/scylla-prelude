@@ -358,6 +358,7 @@ function MorphingDialogClose({
 }
 
 export {
+  useMorphingDialog,
   MorphingDialog,
   MorphingDialogTrigger,
   MorphingDialogContainer,

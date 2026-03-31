@@ -1,32 +1,12 @@
 services:
-  surrealdb:
-    image: surrealdb/surrealdb:v3
-    command: start --user root --pass root file:/data/database.db
-    container_name: scylla-prelude-surrealdb
-    restart: unless-stopped
-    volumes:
-      - surrealdb_data:/data
-    networks:
-      - reverse_proxy_scylla-network
-
   scylla-front:
     image: ${PRELUDE_FRONTEND_IMAGE_NAME:-godlyjaaaaj/scylla-prelude}:${APP_VERSION:-latest}
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    env_file: ../server/.env
-    environment:
-      SURREALDB_URL: ws://surrealdb:8000
+    env_file: ../.env
     container_name: scylla-prelude-frontend
     restart: unless-stopped
-    depends_on:
-      - surrealdb
-    networks:
-      - reverse_proxy_scylla-network
+    ports:
+      - "8080:8080"
 
-volumes:
-  surrealdb_data:
-
-networks:
-  reverse_proxy_scylla-network:
-    external: true
