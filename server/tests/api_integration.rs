@@ -438,6 +438,7 @@ async fn rss_feed() {
     let server = test_app().await;
     let token = test_jwt("test-secret");
 
+    // Post with image and authors
     let body = json!({
         "slug": "rss-post",
         "locale": "en",
@@ -445,8 +446,8 @@ async fn rss_feed() {
         "summary": "For RSS",
         "content": "# Hello\nRSS content",
         "tags": ["test"],
-        "image": null,
-        "authors": [],
+        "image": "/images/rss-cover.jpg",
+        "authors": ["Alice", "Bob"],
         "status": "published",
         "published_at": null
     });
@@ -461,6 +462,51 @@ async fn rss_feed() {
     let body = res.text();
     assert!(body.contains("<title>RSS Post</title>"));
     assert!(body.contains("RSS content"));
+    // guid (isPermaLink=true is the default, so the crate omits the attribute)
+    assert!(body.contains("<guid>"));
+    assert!(body.contains("/devlogs/rss-post</guid>"));
+    // author
+    assert!(body.contains("<author>Alice, Bob</author>"));
+    // enclosure (image)
+    assert!(body.contains("<enclosure"));
+    assert!(body.contains("rss-cover.jpg"));
+    // reading time in description
+    assert!(body.contains("min —"));
+    // language
+    assert!(body.contains("<language>en</language>"));
+}
+
+#[tokio::test]
+async fn rss_feed_no_image_no_enclosure() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    let body = json!({
+        "slug": "rss-noimg",
+        "locale": "en",
+        "title": "No Image Post",
+        "summary": "No image",
+        "content": "Content here",
+        "tags": [],
+        "image": null,
+        "authors": [],
+        "status": "published",
+        "published_at": null
+    });
+    server
+        .post("/admin/posts")
+        .authorization_bearer(&token)
+        .json(&body)
+        .await;
+
+    let res = server.get("/rss").add_query_param("locale", "en").await;
+    res.assert_status_ok();
+    let body = res.text();
+    assert!(body.contains("<title>No Image Post</title>"));
+    // No enclosure when no image
+    assert!(!body.contains("<enclosure"));
+    // No author tag when authors is empty
+    assert!(!body.contains("<author>"));
 }
 
 // ─── Scheduled Publication ────────────────────────────────────────────────────

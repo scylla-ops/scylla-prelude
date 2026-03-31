@@ -2,7 +2,7 @@ use axum::extract::{Query, State};
 use axum::http::header;
 use axum::response::IntoResponse;
 use pulldown_cmark::{Options, Parser, html};
-use rss::{ChannelBuilder, ItemBuilder};
+use rss::{ChannelBuilder, Enclosure, Guid, ItemBuilder};
 use serde::Deserialize;
 
 use crate::AppState;
@@ -25,24 +25,66 @@ pub async fn feed(
     };
 
     let posts = repo::post::list_for_rss(&state.db, &locale, 20).await?;
+    let app_url = &state.config.app_url;
 
     let title = match locale.as_str() {
         "fr" => "Scylla Prelude - Devlog",
         _ => "Scylla Prelude - Devlog",
     };
 
+    let description = match locale.as_str() {
+        "fr" => "Derniers devlogs de Scylla Prelude",
+        _ => "Latest devlogs from Scylla Prelude",
+    };
+
+    let last_build_date = posts.first().map(|p| {
+        p.published_at
+            .unwrap_or(p.created_at)
+            .to_rfc2822()
+    });
+
     let items: Vec<_> = posts
         .into_iter()
         .map(|p| {
             let html_content = md_to_html(&p.content);
-            let link = format!("{}/devlogs/{}", state.config.app_url, p.slug);
+            let link = format!("{app_url}/devlogs/{}", p.slug);
+            let pub_date = p.published_at.unwrap_or(p.created_at).to_rfc2822();
+
+            let desc = format!("\u{23f1}\u{fe0f} {} min — {}", p.reading_time, p.summary);
+
+            let author = if p.authors.is_empty() {
+                None
+            } else {
+                Some(p.authors.join(", "))
+            };
+
+            let enclosure = p.image.as_ref().map(|img| {
+                let url = if img.starts_with("http") {
+                    img.clone()
+                } else {
+                    format!("{app_url}{img}")
+                };
+                Enclosure {
+                    url,
+                    length: "0".to_string(),
+                    mime_type: "image/jpeg".to_string(),
+                }
+            });
+
+            let guid = Guid {
+                value: link.clone(),
+                permalink: true,
+            };
 
             ItemBuilder::default()
                 .title(Some(p.title))
                 .link(Some(link))
-                .description(Some(p.summary))
+                .description(Some(desc))
                 .content(Some(html_content))
-                .pub_date(Some(p.created_at.to_rfc2822()))
+                .author(author)
+                .pub_date(Some(pub_date))
+                .guid(Some(guid))
+                .enclosure(enclosure)
                 .categories(
                     p.tags
                         .into_iter()
@@ -56,13 +98,19 @@ pub async fn feed(
         })
         .collect();
 
-    let channel = ChannelBuilder::default()
+    let mut builder = ChannelBuilder::default();
+    builder
         .title(title)
-        .link(state.config.app_url.clone())
-        .description("Latest devlogs from Scylla Prelude")
-        .items(items)
-        .build();
+        .link(app_url.clone())
+        .description(description)
+        .language(Some(locale.clone()))
+        .items(items);
 
+    if let Some(date) = last_build_date {
+        builder.last_build_date(Some(date));
+    }
+
+    let channel = builder.build();
     let xml = channel.to_string();
 
     Ok((
