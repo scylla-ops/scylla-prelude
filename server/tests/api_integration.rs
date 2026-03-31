@@ -1207,3 +1207,245 @@ async fn public_tags_endpoint() {
     // All tags should have a default color
     assert!(tags.iter().all(|t| t["color"].as_str().is_some()));
 }
+
+// ─── Pass 1: Edge Case Tests ────────────────────────────────────────────────
+
+#[tokio::test]
+async fn create_post_rejects_invalid_slug() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    let body = json!({
+        "slug": "!!BAD SLUG!!",
+        "locale": "en",
+        "title": "Test",
+        "summary": "Test",
+        "content": "Content",
+        "tags": [],
+        "image": null,
+        "authors": [],
+        "status": "draft",
+        "published_at": null
+    });
+    let res = server
+        .post("/admin/posts")
+        .authorization_bearer(&token)
+        .json(&body)
+        .await;
+    res.assert_status(axum::http::StatusCode::BAD_REQUEST);
+    let body: Value = res.json();
+    assert!(body["error"].as_str().unwrap().contains("slug"));
+}
+
+#[tokio::test]
+async fn create_post_rejects_invalid_locale() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    let body = json!({
+        "slug": "valid-slug",
+        "locale": "de",
+        "title": "Test",
+        "summary": "Test",
+        "content": "Content",
+        "tags": [],
+        "image": null,
+        "authors": [],
+        "status": "draft",
+        "published_at": null
+    });
+    let res = server
+        .post("/admin/posts")
+        .authorization_bearer(&token)
+        .json(&body)
+        .await;
+    res.assert_status(axum::http::StatusCode::BAD_REQUEST);
+    let body: Value = res.json();
+    assert!(body["error"].as_str().unwrap().contains("locale"));
+}
+
+#[tokio::test]
+async fn create_post_rejects_invalid_status() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    let body = json!({
+        "slug": "valid-slug",
+        "locale": "en",
+        "title": "Test",
+        "summary": "Test",
+        "content": "Content",
+        "tags": [],
+        "image": null,
+        "authors": [],
+        "status": "banana",
+        "published_at": null
+    });
+    let res = server
+        .post("/admin/posts")
+        .authorization_bearer(&token)
+        .json(&body)
+        .await;
+    res.assert_status(axum::http::StatusCode::BAD_REQUEST);
+    let body: Value = res.json();
+    assert!(body["error"].as_str().unwrap().contains("status"));
+}
+
+#[tokio::test]
+async fn create_post_rejects_empty_title() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    let body = json!({
+        "slug": "valid-slug",
+        "locale": "en",
+        "title": "",
+        "summary": "Test",
+        "content": "Content",
+        "tags": [],
+        "image": null,
+        "authors": [],
+        "status": "draft",
+        "published_at": null
+    });
+    let res = server
+        .post("/admin/posts")
+        .authorization_bearer(&token)
+        .json(&body)
+        .await;
+    res.assert_status(axum::http::StatusCode::BAD_REQUEST);
+    let body: Value = res.json();
+    assert!(body["error"].as_str().unwrap().contains("title"));
+}
+
+#[tokio::test]
+async fn create_post_rejects_oversized_content() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    let huge_content = "x".repeat(600 * 1024); // 600KB
+    let body = json!({
+        "slug": "valid-slug",
+        "locale": "en",
+        "title": "Test",
+        "summary": "Test",
+        "content": huge_content,
+        "tags": [],
+        "image": null,
+        "authors": [],
+        "status": "draft",
+        "published_at": null
+    });
+    let res = server
+        .post("/admin/posts")
+        .authorization_bearer(&token)
+        .json(&body)
+        .await;
+    res.assert_status(axum::http::StatusCode::BAD_REQUEST);
+    let body: Value = res.json();
+    assert!(body["error"].as_str().unwrap().contains("500KB"));
+}
+
+#[tokio::test]
+async fn upsert_tag_color_rejects_invalid_hex() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    let body = json!({ "name": "rust", "color": "not-a-color" });
+    let res = server
+        .put("/admin/tags/color")
+        .authorization_bearer(&token)
+        .json(&body)
+        .await;
+    res.assert_status(axum::http::StatusCode::BAD_REQUEST);
+    let body: Value = res.json();
+    assert!(body["error"].as_str().unwrap().contains("hex color"));
+}
+
+#[tokio::test]
+async fn create_duplicate_slug_locale_returns_conflict() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    let body = json!({
+        "slug": "duplicate-test",
+        "locale": "en",
+        "title": "First",
+        "summary": "First",
+        "content": "Content",
+        "tags": [],
+        "image": null,
+        "authors": [],
+        "status": "draft",
+        "published_at": null
+    });
+
+    // First create succeeds
+    server
+        .post("/admin/posts")
+        .authorization_bearer(&token)
+        .json(&body)
+        .await
+        .assert_status_ok();
+
+    // Second create with same slug+locale → 409
+    let body2 = json!({
+        "slug": "duplicate-test",
+        "locale": "en",
+        "title": "Second",
+        "summary": "Second",
+        "content": "Content",
+        "tags": [],
+        "image": null,
+        "authors": [],
+        "status": "draft",
+        "published_at": null
+    });
+    let res = server
+        .post("/admin/posts")
+        .authorization_bearer(&token)
+        .json(&body2)
+        .await;
+    res.assert_status(axum::http::StatusCode::CONFLICT);
+    let body: Value = res.json();
+    assert!(body["error"].as_str().unwrap().contains("already exists"));
+}
+
+#[tokio::test]
+async fn create_post_rejects_slug_with_leading_hyphen() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    let body = json!({
+        "slug": "-leading-hyphen",
+        "locale": "en",
+        "title": "Test",
+        "summary": "Test",
+        "content": "Content",
+        "tags": [],
+        "image": null,
+        "authors": [],
+        "status": "draft",
+        "published_at": null
+    });
+    let res = server
+        .post("/admin/posts")
+        .authorization_bearer(&token)
+        .json(&body)
+        .await;
+    res.assert_status(axum::http::StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn upsert_tag_color_rejects_empty_name() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    let body = json!({ "name": "", "color": "#FF0000" });
+    let res = server
+        .put("/admin/tags/color")
+        .authorization_bearer(&token)
+        .json(&body)
+        .await;
+    res.assert_status(axum::http::StatusCode::BAD_REQUEST);
+}

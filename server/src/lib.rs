@@ -5,6 +5,7 @@ pub mod middleware;
 pub mod models;
 pub mod routes;
 pub mod scheduler;
+pub mod validation;
 
 use axum::Router;
 use axum::routing::{delete, get, post, put};

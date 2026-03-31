@@ -13,6 +13,10 @@ pub enum AppError {
     BadRequest(String),
     #[error("unauthorized")]
     Unauthorized,
+    #[error("conflict: {0}")]
+    Conflict(String),
+    #[error("payload too large")]
+    PayloadTooLarge,
 }
 
 impl IntoResponse for AppError {
@@ -22,6 +26,8 @@ impl IntoResponse for AppError {
             AppError::NotFound => StatusCode::NOT_FOUND,
             AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
             AppError::Unauthorized => StatusCode::UNAUTHORIZED,
+            AppError::Conflict(_) => StatusCode::CONFLICT,
+            AppError::PayloadTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
         };
         (status, Json(serde_json::json!({ "error": self.to_string() }))).into_response()
     }
@@ -29,7 +35,7 @@ impl IntoResponse for AppError {
 
 impl From<surrealdb::Error> for AppError {
     fn from(error: surrealdb::Error) -> Self {
-        eprintln!("{error}");
+        tracing::error!(%error, "SurrealDB error");
         Self::Db
     }
 }

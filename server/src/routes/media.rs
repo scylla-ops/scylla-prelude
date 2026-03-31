@@ -7,6 +7,7 @@ use crate::AppState;
 use crate::error::AppError;
 use crate::middleware::auth::AuthUser;
 use crate::models::media::{self, Media, MediaSummary};
+use crate::validation;
 use surrealdb_types::Bytes as SurrealBytes;
 
 /// List all uploaded media metadata (admin only, no binary data)
@@ -202,29 +203,7 @@ pub async fn list_tags(
         .query("SELECT tags FROM post GROUP ALL")
         .await?;
     let tags_raw: Option<serde_json::Value> = result.take(0)?;
-
-    let mut tags: Vec<String> = Vec::new();
-    if let Some(serde_json::Value::Object(map)) = tags_raw {
-        if let Some(serde_json::Value::Array(arr)) = map.get("tags") {
-            for item in arr {
-                if let serde_json::Value::String(t) = item {
-                    if !tags.contains(t) {
-                        tags.push(t.clone());
-                    }
-                } else if let serde_json::Value::Array(inner) = item {
-                    for t in inner {
-                        if let serde_json::Value::String(s) = t {
-                            if !tags.contains(s) {
-                                tags.push(s.clone());
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    tags.sort();
+    let tags = crate::models::tag_meta::dedup_tag_names(tags_raw);
     Ok(Json(tags))
 }
 
@@ -234,6 +213,9 @@ pub async fn upsert_tag_color(
     _auth: AuthUser,
     Json(req): Json<TagColorRequest>,
 ) -> Result<Json<serde_json::Value>, AppError> {
+    validation::validate_tag_name(&req.name)?;
+    validation::validate_tag_color(&req.color)?;
+
     // Upsert: update if exists, create if not
     state
         .db

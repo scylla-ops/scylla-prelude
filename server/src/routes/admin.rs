@@ -7,6 +7,7 @@ use crate::AppState;
 use crate::error::AppError;
 use crate::middleware::auth::AuthUser;
 use crate::models::post::{self, Post, PostSummary, estimate_reading_time};
+use crate::validation::validate_post_fields;
 
 #[derive(Deserialize)]
 pub struct LocaleParam {
@@ -72,6 +73,30 @@ pub async fn create_post(
     _auth: AuthUser,
     Json(req): Json<CreatePostRequest>,
 ) -> Result<Json<Option<Post>>, AppError> {
+    validate_post_fields(&req)?;
+
+    // Check for duplicate slug+locale
+    let mut check = state
+        .db
+        .query(
+            "SELECT count() AS total FROM type::table($table) \
+             WHERE slug = $slug AND locale = $locale GROUP ALL",
+        )
+        .bind(("table", post::TABLE))
+        .bind(("slug", req.slug.clone()))
+        .bind(("locale", req.locale.clone()))
+        .await?;
+    let existing: Option<serde_json::Value> = check.take(0)?;
+    let count = existing
+        .and_then(|v| v.get("total").and_then(|t| t.as_u64()))
+        .unwrap_or(0);
+    if count > 0 {
+        return Err(AppError::Conflict(format!(
+            "post with slug '{}' and locale '{}' already exists",
+            req.slug, req.locale
+        )));
+    }
+
     let reading_time = estimate_reading_time(&req.content);
 
     let mut result = state
@@ -116,6 +141,7 @@ pub async fn update_post(
     Path(slug): Path<String>,
     Json(req): Json<CreatePostRequest>,
 ) -> Result<Json<Post>, AppError> {
+    validate_post_fields(&req)?;
     let reading_time = estimate_reading_time(&req.content);
 
     let mut result = state
@@ -175,5 +201,3 @@ pub async fn delete_post(
     let post: Option<Post> = result.take(0)?;
     Ok(Json(post))
 }
-
-// Image upload has moved to routes::media

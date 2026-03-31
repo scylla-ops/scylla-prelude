@@ -148,29 +148,7 @@ pub async fn list_tags(
         .await?;
 
     let tags_raw: Option<serde_json::Value> = result.take(0)?;
-
-    let mut tag_names: Vec<String> = Vec::new();
-    if let Some(serde_json::Value::Object(map)) = tags_raw {
-        if let Some(serde_json::Value::Array(arr)) = map.get("tags") {
-            for item in arr {
-                if let serde_json::Value::String(t) = item {
-                    if !tag_names.contains(t) {
-                        tag_names.push(t.clone());
-                    }
-                } else if let serde_json::Value::Array(inner) = item {
-                    for t in inner {
-                        if let serde_json::Value::String(s) = t {
-                            if !tag_names.contains(s) {
-                                tag_names.push(s.clone());
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    tag_names.sort();
+    let tag_names = tag_meta::dedup_tag_names(tags_raw);
 
     // Fetch all tag_meta records
     let mut meta_result = state
@@ -180,18 +158,6 @@ pub async fn list_tags(
         .await?;
     let metas: Vec<TagMeta> = meta_result.take(0)?;
 
-    // Merge: use color from tag_meta if it exists, otherwise default
-    let tags: Vec<TagMeta> = tag_names
-        .into_iter()
-        .map(|name| {
-            let color = metas
-                .iter()
-                .find(|m| m.name == name)
-                .map(|m| m.color.clone())
-                .unwrap_or_else(|| "#6b7280".to_string());
-            TagMeta { name, color }
-        })
-        .collect();
-
+    let tags = tag_meta::merge_tags_with_colors(tag_names, metas);
     Ok(Json(tags))
 }
