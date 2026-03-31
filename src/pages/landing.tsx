@@ -297,7 +297,7 @@ export function LandingPage() {
                         className="fixed inset-0 z-10"
                         onClick={() => setFilterOpen(false)}
                       />
-                      <div className="absolute top-full left-0 z-20 mt-1.5 w-48 rounded-lg bg-card p-1.5 ring-1 ring-foreground/10 shadow-xl">
+                      <div className="absolute top-full left-0 z-20 mt-1.5 w-48 origin-top-left animate-in fade-in zoom-in-95 rounded-lg bg-card p-1.5 ring-1 ring-foreground/10 shadow-xl duration-150">
                         {tags.map((tag) => {
                           const isActive = activeTags.includes(tag.name);
                           return (
