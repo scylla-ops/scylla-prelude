@@ -7,8 +7,14 @@ services:
     env_file: ../.env
     container_name: scylla-prelude-frontend
     restart: unless-stopped
+    volumes:
+      - surrealdb_data:/app/data
     networks:
       - reverse_proxy_scylla-network
+
+volumes:
+  surrealdb_data:
+
 networks:
   reverse_proxy_scylla-network:
     external: true
