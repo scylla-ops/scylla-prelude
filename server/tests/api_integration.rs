@@ -1449,3 +1449,308 @@ async fn upsert_tag_color_rejects_empty_name() {
         .await;
     res.assert_status(axum::http::StatusCode::BAD_REQUEST);
 }
+
+// ─── Pass 2: Edge Case Tests ────────────────────────────────────────────────
+
+#[tokio::test]
+async fn pagination_limit_capped_at_100() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    // Create 3 posts
+    for i in 0..3 {
+        let body = json!({
+            "slug": format!("cap-post-{i}"),
+            "locale": "en",
+            "title": format!("Post {i}"),
+            "summary": "S",
+            "content": "C",
+            "tags": [],
+            "image": null,
+            "authors": [],
+            "status": "published",
+            "published_at": null
+        });
+        server
+            .post("/admin/posts")
+            .authorization_bearer(&token)
+            .json(&body)
+            .await
+            .assert_status_ok();
+    }
+
+    // Request with absurd limit — should be clamped, not error
+    let res = server
+        .get("/posts")
+        .add_query_param("locale", "en")
+        .add_query_param("limit", "99999")
+        .await;
+    res.assert_status_ok();
+    let body: Value = res.json();
+    // All 3 posts returned (limit clamped to 100 which is > 3)
+    assert_eq!(body["posts"].as_array().unwrap().len(), 3);
+}
+
+#[tokio::test]
+async fn pagination_beyond_total_returns_empty() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    let body = json!({
+        "slug": "page-test",
+        "locale": "en",
+        "title": "P",
+        "summary": "S",
+        "content": "C",
+        "tags": [],
+        "image": null,
+        "authors": [],
+        "status": "published",
+        "published_at": null
+    });
+    server
+        .post("/admin/posts")
+        .authorization_bearer(&token)
+        .json(&body)
+        .await
+        .assert_status_ok();
+
+    let res = server
+        .get("/posts")
+        .add_query_param("locale", "en")
+        .add_query_param("page", "999")
+        .add_query_param("limit", "10")
+        .await;
+    res.assert_status_ok();
+    let body: Value = res.json();
+    assert!(body["posts"].as_array().unwrap().is_empty());
+    // Total should still reflect actual count
+    assert_eq!(body["total"], 1);
+}
+
+#[tokio::test]
+async fn search_rejects_overlong_query() {
+    let server = test_app().await;
+    let long_search = "a".repeat(201);
+
+    let res = server
+        .get("/posts")
+        .add_query_param("locale", "en")
+        .add_query_param("search", &long_search)
+        .await;
+    res.assert_status(axum::http::StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn search_empty_returns_all() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    let body = json!({
+        "slug": "search-empty-test",
+        "locale": "en",
+        "title": "Visible Post",
+        "summary": "Should appear",
+        "content": "Content",
+        "tags": [],
+        "image": null,
+        "authors": [],
+        "status": "published",
+        "published_at": null
+    });
+    server
+        .post("/admin/posts")
+        .authorization_bearer(&token)
+        .json(&body)
+        .await
+        .assert_status_ok();
+
+    // Empty search string should be treated as no search
+    let res = server
+        .get("/posts")
+        .add_query_param("locale", "en")
+        .add_query_param("search", "")
+        .await;
+    res.assert_status_ok();
+    let body: Value = res.json();
+    assert_eq!(body["posts"].as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn search_is_case_insensitive() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    let body = json!({
+        "slug": "case-test",
+        "locale": "en",
+        "title": "UPPERCASE Title",
+        "summary": "Something",
+        "content": "C",
+        "tags": [],
+        "image": null,
+        "authors": [],
+        "status": "published",
+        "published_at": null
+    });
+    server
+        .post("/admin/posts")
+        .authorization_bearer(&token)
+        .json(&body)
+        .await
+        .assert_status_ok();
+
+    let res = server
+        .get("/posts")
+        .add_query_param("locale", "en")
+        .add_query_param("search", "uppercase")
+        .await;
+    res.assert_status_ok();
+    let body: Value = res.json();
+    assert_eq!(body["posts"].as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn upload_rejects_mismatched_magic_bytes() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    // JPEG magic bytes (0xFF 0xD8) but named .png
+    let jpeg_bytes = vec![0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10];
+    let form = MultipartForm::new()
+        .add_part("file", Part::bytes(jpeg_bytes).file_name("test.png").mime_type("image/png"));
+
+    let res = server
+        .post("/admin/upload")
+        .authorization_bearer(&token)
+        .multipart(form)
+        .await;
+    res.assert_status(axum::http::StatusCode::BAD_REQUEST);
+    let body: Value = res.json();
+    assert!(body["error"].as_str().unwrap().contains("does not match"));
+}
+
+#[tokio::test]
+async fn upload_rejects_oversized_file() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    // Valid PNG header + ~5.5MB (over the 5MB app limit but under axum's default 2MB body limit)
+    // Axum's default body limit will reject at the extractor level with 400.
+    // We test that files over 5MB are rejected — whether by axum's body limit or our handler.
+    let mut data = b"\x89PNG\r\n\x1a\n".to_vec();
+    data.resize(6 * 1024 * 1024, 0);
+
+    let form = MultipartForm::new()
+        .add_part("file", Part::bytes(data).file_name("big.png").mime_type("image/png"));
+
+    let res = server
+        .post("/admin/upload")
+        .authorization_bearer(&token)
+        .multipart(form)
+        .await;
+    // Rejected either by axum body limit (400) or our handler (413)
+    let status = res.status_code().as_u16();
+    assert!(status == 400 || status == 413, "Expected 400 or 413, got {status}");
+}
+
+#[tokio::test]
+async fn upsert_tag_color_creates_and_updates() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    // Create a published post with the tag first
+    let post = json!({
+        "slug": "tag-color-test",
+        "locale": "en",
+        "title": "P",
+        "summary": "S",
+        "content": "C",
+        "tags": ["rust"],
+        "image": null,
+        "authors": [],
+        "status": "published",
+        "published_at": null
+    });
+    server
+        .post("/admin/posts")
+        .authorization_bearer(&token)
+        .json(&post)
+        .await
+        .assert_status_ok();
+
+    // Set color
+    let body = json!({ "name": "rust", "color": "#FF5733" });
+    server
+        .put("/admin/tags/color")
+        .authorization_bearer(&token)
+        .json(&body)
+        .await
+        .assert_status_ok();
+
+    // Verify via public tags endpoint
+    let res = server.get("/tags").add_query_param("locale", "en").await;
+    let tags: Vec<Value> = res.json();
+    let rust_tag = tags.iter().find(|t| t["name"] == "rust").unwrap();
+    assert_eq!(rust_tag["color"], "#FF5733");
+
+    // Update color
+    let body2 = json!({ "name": "rust", "color": "#00FF00" });
+    server
+        .put("/admin/tags/color")
+        .authorization_bearer(&token)
+        .json(&body2)
+        .await
+        .assert_status_ok();
+
+    let res = server.get("/tags").add_query_param("locale", "en").await;
+    let tags: Vec<Value> = res.json();
+    let rust_tag = tags.iter().find(|t| t["name"] == "rust").unwrap();
+    assert_eq!(rust_tag["color"], "#00FF00");
+}
+
+#[tokio::test]
+async fn admin_list_posts_pagination() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    // Create 5 posts
+    for i in 0..5 {
+        let body = json!({
+            "slug": format!("admin-page-{i}"),
+            "locale": "en",
+            "title": format!("Post {i}"),
+            "summary": "S",
+            "content": "C",
+            "tags": [],
+            "image": null,
+            "authors": [],
+            "status": "draft",
+            "published_at": null
+        });
+        server
+            .post("/admin/posts")
+            .authorization_bearer(&token)
+            .json(&body)
+            .await
+            .assert_status_ok();
+    }
+
+    // Without pagination — returns all
+    let res = server
+        .get("/admin/posts")
+        .authorization_bearer(&token)
+        .await;
+    let all: Vec<Value> = res.json();
+    assert_eq!(all.len(), 5);
+
+    // With pagination — returns 2
+    let res = server
+        .get("/admin/posts")
+        .add_query_param("limit", "2")
+        .add_query_param("page", "0")
+        .authorization_bearer(&token)
+        .await;
+    let page: Vec<Value> = res.json();
+    assert_eq!(page.len(), 2);
+}

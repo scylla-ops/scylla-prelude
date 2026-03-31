@@ -32,8 +32,16 @@ pub async fn list_posts(
     Query(params): Query<ListParams>,
 ) -> Result<Json<PaginatedPosts>, AppError> {
     let locale = params.locale.unwrap_or_else(|| "en".into());
-    let limit = params.limit.unwrap_or(20);
-    let offset = params.page.unwrap_or(0) * limit;
+    let limit = params.limit.unwrap_or(20).clamp(1, 100);
+    let page = params.page.unwrap_or(0).min(10000);
+    let offset = page * limit;
+
+    // Validate search length
+    if let Some(ref s) = params.search {
+        if s.len() > 200 {
+            return Err(AppError::BadRequest("search query too long (max 200 chars)".into()));
+        }
+    }
 
     // Collect tags from both ?tag= and ?tags= params
     let mut tag_list: Vec<String> = Vec::new();
@@ -52,7 +60,12 @@ pub async fn list_posts(
     let mut where_clause =
         "WHERE status = 'published' AND locale = $locale".to_string();
     let has_tags = !tag_list.is_empty();
-    let has_search = params.search.is_some();
+    // Trim search, treat empty as None
+    let search = params.search.and_then(|s| {
+        let trimmed = s.trim().to_string();
+        if trimmed.is_empty() { None } else { Some(trimmed) }
+    });
+    let has_search = search.is_some();
 
     if has_tags {
         // Each tag must be present (AND logic)
@@ -88,7 +101,7 @@ pub async fn list_posts(
     for (i, tag) in tag_list.into_iter().enumerate() {
         query = query.bind((format!("tag_{i}"), tag));
     }
-    if let Some(search) = params.search {
+    if let Some(search) = search {
         query = query.bind(("search", search));
     }
 

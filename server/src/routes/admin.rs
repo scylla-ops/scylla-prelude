@@ -15,6 +15,12 @@ pub struct LocaleParam {
 }
 
 #[derive(Deserialize)]
+pub struct AdminListParams {
+    pub page: Option<u32>,
+    pub limit: Option<u32>,
+}
+
+#[derive(Deserialize)]
 pub struct CreatePostRequest {
     pub slug: String,
     pub locale: String,
@@ -32,14 +38,28 @@ pub struct CreatePostRequest {
 pub async fn list_all_posts(
     State(state): State<AppState>,
     _auth: AuthUser,
+    Query(params): Query<AdminListParams>,
 ) -> Result<Json<Vec<PostSummary>>, AppError> {
+    let query_str = if params.limit.is_some() || params.page.is_some() {
+        let limit = params.limit.unwrap_or(20).clamp(1, 100);
+        let offset = params.page.unwrap_or(0).min(10000) * limit;
+        format!(
+            "SELECT slug, locale, title, summary, tags, image, image_position, \
+             authors, reading_time, status, published_at, created_at \
+             FROM type::table($table) ORDER BY created_at DESC \
+             LIMIT {} START {}",
+            limit, offset
+        )
+    } else {
+        "SELECT slug, locale, title, summary, tags, image, image_position, \
+         authors, reading_time, status, published_at, created_at \
+         FROM type::table($table) ORDER BY created_at DESC"
+            .to_string()
+    };
+
     let mut result = state
         .db
-        .query(
-            "SELECT slug, locale, title, summary, tags, image, image_position, authors, reading_time, status, published_at, created_at
-             FROM type::table($table)
-             ORDER BY created_at DESC",
-        )
+        .query(&query_str)
         .bind(("table", post::TABLE))
         .await?;
     let posts: Vec<PostSummary> = result.take(0)?;

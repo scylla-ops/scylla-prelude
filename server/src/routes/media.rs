@@ -107,7 +107,21 @@ pub async fn upload_image(
             .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
         if data.len() > 5 * 1024 * 1024 {
-            return Err(AppError::BadRequest("File too large (max 5MB)".into()));
+            return Err(AppError::PayloadTooLarge);
+        }
+
+        // Verify file magic bytes match claimed extension
+        let valid_magic = match ext.as_str() {
+            "png" => data.starts_with(b"\x89PNG"),
+            "jpg" | "jpeg" => data.len() >= 2 && data[0] == 0xFF && data[1] == 0xD8,
+            "gif" => data.starts_with(b"GIF8"),
+            "webp" => data.len() > 12 && data.starts_with(b"RIFF") && &data[8..12] == b"WEBP",
+            _ => false,
+        };
+        if !valid_magic {
+            return Err(AppError::BadRequest(
+                "file content does not match extension".into(),
+            ));
         }
 
         let (width, height) = parse_image_dimensions(&data);
