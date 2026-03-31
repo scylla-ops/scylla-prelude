@@ -18,9 +18,11 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   fetchAdminPosts,
   deletePost,
+  patchPostStatus,
   formatDate,
   type PostSummary,
 } from "@/lib/api";
+import { toast } from "sonner";
 import {
   Plus,
   Pencil,
@@ -54,25 +56,54 @@ function statusDot(status: string) {
   }
 }
 
-function statusLabel(status: string) {
-  switch (status) {
-    case "published":
-      return "text-emerald-600 dark:text-emerald-400";
-    case "scheduled":
-      return "text-amber-600 dark:text-amber-400";
-    default:
-      return "text-muted-foreground";
-  }
+
+const NEXT_STATUS: Record<string, string> = {
+  draft: "published",
+  published: "draft",
+  scheduled: "published",
+};
+
+function StatusToggle({
+  post,
+  onToggle,
+}: {
+  post: PostSummary;
+  onToggle: (newStatus: string) => void;
+}) {
+  const next = NEXT_STATUS[post.status] ?? "draft";
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onToggle(next);
+      }}
+      title={`Switch to ${next}`}
+      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors hover:ring-1 hover:ring-foreground/10 ${
+        post.status === "published"
+          ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+          : post.status === "scheduled"
+            ? "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 dark:text-amber-400"
+            : "bg-muted text-muted-foreground hover:bg-muted/80"
+      }`}
+    >
+      <span className={`inline-block size-1.5 rounded-full ${statusDot(post.status)}`} />
+      <span className="capitalize">{post.status}</span>
+    </button>
+  );
 }
 
 function PostRow({
   post,
   index,
   onDelete,
+  onStatusChange,
 }: {
   post: PostSummary;
   index: number;
   onDelete: () => void;
+  onStatusChange: (newStatus: string) => void;
 }) {
   return (
     <motion.div
@@ -115,12 +146,7 @@ function PostRow({
           </div>
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
             {/* Status */}
-            <span className="flex items-center gap-1">
-              <span className={`inline-block size-1.5 rounded-full ${statusDot(post.status)}`} />
-              <span className={`capitalize ${statusLabel(post.status)}`}>
-                {post.status}
-              </span>
-            </span>
+            <StatusToggle post={post} onToggle={onStatusChange} />
             <span className="text-border">·</span>
             {/* Date */}
             <span>{formatDate(post.created_at)}</span>
@@ -215,6 +241,18 @@ export function AdminDashboard() {
       scheduled: posts.filter((p) => p.status === "scheduled").length,
     };
   }, [posts]);
+
+  const statusMutation = useMutation({
+    mutationFn: ({ slug, locale, status, published_at }: { slug: string; locale: string; status: string; published_at?: string | null }) =>
+      patchPostStatus(token!, slug, locale, status, published_at),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-posts"] });
+      toast.success(`Post switched to ${variables.status}`);
+    },
+    onError: (error) => {
+      toast.error(`Status update failed: ${error.message}`);
+    },
+  });
 
   const deleteMutation = useMutation({
     mutationFn: ({ slug, locale }: { slug: string; locale: string }) =>
@@ -343,6 +381,14 @@ export function AdminDashboard() {
                     slug: post.slug,
                     locale: post.locale,
                     title: post.title,
+                  })
+                }
+                onStatusChange={(newStatus) =>
+                  statusMutation.mutate({
+                    slug: post.slug,
+                    locale: post.locale,
+                    status: newStatus,
+                    published_at: post.published_at,
                   })
                 }
               />

@@ -28,3 +28,14 @@ pub struct MediaSummary {
     pub height: u32,
     pub created_at: DateTime<Utc>,
 }
+
+/// Data for creating a new media record
+#[derive(Debug, Serialize, SurrealValue)]
+pub struct CreateMedia {
+    pub filename: String,
+    pub mime_type: String,
+    pub size: u64,
+    pub width: u32,
+    pub height: u32,
+    pub data: Bytes,
+}

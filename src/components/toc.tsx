@@ -9,10 +9,13 @@ interface TocItem {
   level: 1 | 2 | 3;
 }
 
-import { slugify } from "@/lib/utils";
-export { slugify };
+import { slugify, slugifyUrl } from "@/lib/utils";
+// Re-exported from utils for external consumers
+// eslint-disable-next-line react-refresh/only-export-components
+export { slugify, slugifyUrl };
 
 /** Extract plain text from React children (for heading content) */
+// eslint-disable-next-line react-refresh/only-export-components
 export function getTextContent(children: React.ReactNode): string {
   if (typeof children === "string") return children;
   if (typeof children === "number") return String(children);
@@ -34,7 +37,7 @@ function parseHeadings(content: string): TocItem[] {
 
   while ((match = headingRegex.exec(content)) !== null) {
     const level = match[1].length as 1 | 2 | 3;
-    const text = match[2].replace(/[*_`~\[\]]/g, "").trim();
+    const text = match[2].replace(/[*_`~[\]]/g, "").trim();
     let id = slugify(text);
 
     // Deduplicate IDs

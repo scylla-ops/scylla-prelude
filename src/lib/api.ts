@@ -66,7 +66,7 @@ export async function fetchPosts(
   if (options?.page != null) params.set("page", String(options.page));
   if (options?.limit != null) params.set("limit", String(options.limit));
   const res = await fetch(`${API_BASE}/posts?${params}`);
-  if (!res.ok) throw new Error("Failed to fetch posts");
+  if (!res.ok) throw new Error(await extractApiError(res, "Failed to fetch posts"));
   return res.json();
 }
 
@@ -78,7 +78,7 @@ export interface TagInfo {
 export async function fetchPublicTags(locale: string): Promise<TagInfo[]> {
   const params = new URLSearchParams({ locale });
   const res = await fetch(`${API_BASE}/tags?${params}`);
-  if (!res.ok) throw new Error("Failed to fetch tags");
+  if (!res.ok) throw new Error(await extractApiError(res, "Failed to fetch tags"));
   return res.json();
 }
 
@@ -92,7 +92,7 @@ export async function upsertTagColor(
     headers: authHeaders(token),
     body: JSON.stringify({ name, color }),
   });
-  if (!res.ok) throw new Error("Failed to update tag color");
+  if (!res.ok) throw new Error(await extractApiError(res, "Failed to update tag color"));
 }
 
 export async function fetchPost(
@@ -101,12 +101,28 @@ export async function fetchPost(
 ): Promise<Post> {
   const params = new URLSearchParams({ locale });
   const res = await fetch(`${API_BASE}/posts/${slug}?${params}`);
-  if (!res.ok) throw new Error("Post not found");
+  if (!res.ok) throw new Error(await extractApiError(res, "Post not found"));
   return res.json();
 }
 
 function authHeaders(token: string): HeadersInit {
   return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+}
+
+async function extractApiError(res: Response, fallback: string): Promise<string> {
+  try {
+    const text = await res.text();
+    const json = JSON.parse(text);
+    if (typeof json.error === "string") {
+      const msg = json.error
+        .replace(/^bad request:\s*/i, "")
+        .replace(/^conflict:\s*/i, "");
+      return msg.charAt(0).toUpperCase() + msg.slice(1);
+    }
+  } catch {
+    // not JSON or unreadable — use fallback
+  }
+  return fallback;
 }
 
 export async function fetchAdminPost(
@@ -118,7 +134,7 @@ export async function fetchAdminPost(
   const res = await fetch(`${API_BASE}/admin/posts/${slug}?${params}`, {
     headers: authHeaders(token),
   });
-  if (!res.ok) throw new Error("Post not found");
+  if (!res.ok) throw new Error(await extractApiError(res, "Post not found"));
   return res.json();
 }
 
@@ -126,7 +142,7 @@ export async function fetchAdminPosts(token: string): Promise<PostSummary[]> {
   const res = await fetch(`${API_BASE}/admin/posts`, {
     headers: authHeaders(token),
   });
-  if (!res.ok) throw new Error("Failed to fetch admin posts");
+  if (!res.ok) throw new Error(await extractApiError(res, "Failed to fetch admin posts"));
   return res.json();
 }
 
@@ -144,8 +160,7 @@ export async function createPost(
       signal: controller.signal,
     });
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      throw new Error(body || "Failed to create post");
+      throw new Error(await extractApiError(res, "Failed to create post"));
     }
     return res.json();
   } finally {
@@ -168,13 +183,30 @@ export async function updatePost(
       signal: controller.signal,
     });
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      throw new Error(body || "Failed to update post");
+      throw new Error(await extractApiError(res, "Failed to update post"));
     }
     return res.json();
   } finally {
     clearTimeout(timeout);
   }
+}
+
+export async function patchPostStatus(
+  token: string,
+  slug: string,
+  locale: string,
+  status: string,
+  published_at?: string | null,
+): Promise<Post> {
+  const res = await fetch(`${API_BASE}/admin/posts/${slug}/status`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+    body: JSON.stringify({ locale, status, published_at: published_at ?? null }),
+  });
+  if (!res.ok) {
+    throw new Error(await extractApiError(res, "Failed to update status"));
+  }
+  return res.json();
 }
 
 export async function deletePost(
@@ -187,7 +219,7 @@ export async function deletePost(
     method: "DELETE",
     headers: authHeaders(token),
   });
-  if (!res.ok) throw new Error("Failed to delete post");
+  if (!res.ok) throw new Error(await extractApiError(res, "Failed to delete post"));
 }
 
 // --- Media ---
@@ -203,7 +235,7 @@ export async function uploadImage(
     headers: { Authorization: `Bearer ${token}` },
     body: form,
   });
-  if (!res.ok) throw new Error("Failed to upload image");
+  if (!res.ok) throw new Error(await extractApiError(res, "Failed to upload image"));
   return res.json();
 }
 
@@ -211,7 +243,7 @@ export async function fetchMedia(token: string): Promise<MediaItem[]> {
   const res = await fetch(`${API_BASE}/admin/media`, {
     headers: authHeaders(token),
   });
-  if (!res.ok) throw new Error("Failed to fetch media");
+  if (!res.ok) throw new Error(await extractApiError(res, "Failed to fetch media"));
   return res.json();
 }
 
@@ -223,14 +255,14 @@ export async function deleteMedia(
     method: "DELETE",
     headers: authHeaders(token),
   });
-  if (!res.ok) throw new Error("Failed to delete media");
+  if (!res.ok) throw new Error(await extractApiError(res, "Failed to delete media"));
 }
 
 export async function fetchTags(token: string): Promise<string[]> {
   const res = await fetch(`${API_BASE}/admin/tags`, {
     headers: authHeaders(token),
   });
-  if (!res.ok) throw new Error("Failed to fetch tags");
+  if (!res.ok) throw new Error(await extractApiError(res, "Failed to fetch tags"));
   return res.json();
 }
 

@@ -7,6 +7,11 @@ pub const TABLE: &str = "post";
 /// Average reading speed in words per minute
 const WORDS_PER_MINUTE: usize = 200;
 
+/// Build the record key for a post: `{slug}_{locale}`
+pub fn post_key(slug: &str, locale: &str) -> String {
+    format!("{slug}_{locale}")
+}
+
 /// Estimate reading time in minutes from markdown content
 pub fn estimate_reading_time(content: &str) -> u32 {
     let word_count = content.split_whitespace().count();
@@ -30,6 +35,48 @@ pub struct Post {
     pub status: String,
     pub published_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Data for creating a new post (no id/timestamps — SurrealDB sets those)
+#[derive(Debug, Serialize, SurrealValue)]
+pub struct CreatePost {
+    pub slug: String,
+    pub locale: String,
+    pub title: String,
+    pub summary: String,
+    pub content: String,
+    pub tags: Vec<String>,
+    pub image: Option<String>,
+    pub image_position: Option<String>,
+    pub authors: Vec<String>,
+    pub reading_time: u32,
+    pub status: String,
+    pub published_at: Option<DateTime<Utc>>,
+}
+
+/// Data for fully updating an existing post (slug excluded — derived from path param)
+#[derive(Debug, Serialize, SurrealValue)]
+pub struct UpdatePost {
+    pub locale: String,
+    pub title: String,
+    pub summary: String,
+    pub content: String,
+    pub tags: Vec<String>,
+    pub image: Option<String>,
+    pub image_position: Option<String>,
+    pub authors: Vec<String>,
+    pub reading_time: u32,
+    pub status: String,
+    pub published_at: Option<DateTime<Utc>>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Partial update for status changes only
+#[derive(Debug, Serialize, SurrealValue)]
+pub struct PatchStatus {
+    pub status: String,
+    pub published_at: Option<DateTime<Utc>>,
     pub updated_at: DateTime<Utc>,
 }
 

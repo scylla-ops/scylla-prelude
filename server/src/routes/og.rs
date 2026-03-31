@@ -2,7 +2,8 @@ use axum::extract::{Path, State};
 use axum::response::{Html, IntoResponse};
 
 use crate::AppState;
-use crate::models::post::{self, Post};
+use crate::models::post::Post;
+use crate::repo;
 
 /// Serves the SPA index.html with OG/Twitter meta tags injected for social media crawlers.
 /// Falls through to the normal SPA for non-crawler requests (handled by fallback).
@@ -35,20 +36,13 @@ pub async fn devlog_with_meta(
 }
 
 async fn fetch_post_for_og(state: &AppState, slug: &str) -> Option<Post> {
-    let mut result = state
-        .db
-        .query(
-            "SELECT * FROM type::table($table)
-             WHERE slug = $slug AND status = 'published'
-             ORDER BY locale = 'en' DESC
-             LIMIT 1",
-        )
-        .bind(("table", post::TABLE))
-        .bind(("slug", slug.to_string()))
-        .await
-        .ok()?;
-
-    result.take(0).ok()?
+    // Try English first, then fall back to French
+    for locale in ["en", "fr"] {
+        if let Ok(Some(post)) = repo::post::get_published(&state.db, slug, locale).await {
+            return Some(post);
+        }
+    }
+    None
 }
 
 fn build_meta_tags(post: &Post, app_url: &str) -> String {
@@ -70,7 +64,7 @@ fn build_meta_tags(post: &Post, app_url: &str) -> String {
     let mut tags = String::new();
 
     // OpenGraph
-    tags.push_str(&format!(r#"<meta property="og:type" content="article" />"#));
+    tags.push_str(r#"<meta property="og:type" content="article" />"#);
     tags.push('\n');
     tags.push_str(&format!(
         r#"<meta property="og:title" content="{title}" />"#
@@ -88,15 +82,11 @@ fn build_meta_tags(post: &Post, app_url: &str) -> String {
         ));
         tags.push('\n');
     }
-    tags.push_str(&format!(
-        r#"<meta property="og:site_name" content="Scylla Prelude" />"#
-    ));
+    tags.push_str(r#"<meta property="og:site_name" content="Scylla Prelude" />"#);
     tags.push('\n');
 
     // Twitter Card
-    tags.push_str(&format!(
-        r#"<meta name="twitter:card" content="summary_large_image" />"#
-    ));
+    tags.push_str(r#"<meta name="twitter:card" content="summary_large_image" />"#);
     tags.push('\n');
     tags.push_str(&format!(
         r#"<meta name="twitter:title" content="{title}" />"#

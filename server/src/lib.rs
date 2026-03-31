@@ -3,12 +3,13 @@ pub mod db;
 pub mod error;
 pub mod middleware;
 pub mod models;
+pub mod repo;
 pub mod routes;
 pub mod scheduler;
 pub mod validation;
 
 use axum::Router;
-use axum::routing::{delete, get, post, put};
+use axum::routing::{delete, get, patch, post, put};
 use surrealdb::engine::any::Any;
 use surrealdb::Surreal;
 
@@ -42,6 +43,7 @@ pub fn api_router(state: AppState) -> Router {
         .route("/admin/posts", post(routes::admin::create_post))
         .route("/admin/posts/{slug}", get(routes::admin::get_post))
         .route("/admin/posts/{slug}", put(routes::admin::update_post))
+        .route("/admin/posts/{slug}/status", patch(routes::admin::patch_post_status))
         .route("/admin/posts/{slug}", delete(routes::admin::delete_post))
         .route("/admin/upload", post(routes::media::upload_image))
         .route("/admin/media", get(routes::media::list_media))

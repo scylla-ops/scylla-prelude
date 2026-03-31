@@ -15,7 +15,7 @@ use tower_http::request_id::{MakeRequestUuid, SetRequestIdLayer};
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::set_header::SetResponseHeaderLayer;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
-use tracing::{Level, info};
+use tracing::{Level, debug, info};
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -65,6 +65,7 @@ async fn main() {
             axum::http::Method::GET,
             axum::http::Method::POST,
             axum::http::Method::PUT,
+            axum::http::Method::PATCH,
             axum::http::Method::DELETE,
         ])
         .allow_headers([
@@ -86,6 +87,13 @@ async fn main() {
     // Static file serving
     let x_request_id = HeaderName::from_static("x-request-id");
     let index_path = format!("{}/index.html", config.dist_path);
+
+    let dist_abs = std::fs::canonicalize(&config.dist_path);
+    let index_exists = std::path::Path::new(&index_path).exists();
+    debug!(
+        "SPA config: DIST_PATH={:?}, resolved={:?}, index.html exists={}",
+        config.dist_path, dist_abs, index_exists
+    );
 
     let assets_path = format!("{}/assets", config.dist_path);
     let assets_service = ServeDir::new(assets_path);
@@ -133,7 +141,7 @@ async fn main() {
         .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("content-security-policy"),
             HeaderValue::from_static(
-                "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https:;",
+                "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:;",
             ),
         ))
         .layer(SetResponseHeaderLayer::overriding(

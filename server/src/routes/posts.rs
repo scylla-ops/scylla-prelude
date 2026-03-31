@@ -4,8 +4,9 @@ use serde::Deserialize;
 
 use crate::AppState;
 use crate::error::AppError;
-use crate::models::post::{self, PaginatedPosts, Post, PostSummary};
+use crate::models::post::{PaginatedPosts, Post};
 use crate::models::tag_meta::{self, TagMeta};
+use crate::repo;
 
 #[derive(Deserialize)]
 pub struct ListParams {
@@ -27,20 +28,29 @@ pub struct TagsParams {
     pub locale: Option<String>,
 }
 
+/// Default to "en" if the locale is missing or not in the allowlist.
+fn sanitize_locale(raw: Option<String>) -> String {
+    match raw.as_deref() {
+        Some("en") => "en".into(),
+        Some("fr") => "fr".into(),
+        _ => "en".into(),
+    }
+}
+
 pub async fn list_posts(
     State(state): State<AppState>,
     Query(params): Query<ListParams>,
 ) -> Result<Json<PaginatedPosts>, AppError> {
-    let locale = params.locale.unwrap_or_else(|| "en".into());
+    let locale = sanitize_locale(params.locale);
     let limit = params.limit.unwrap_or(20).clamp(1, 100);
     let page = params.page.unwrap_or(0).min(10000);
     let offset = page * limit;
 
     // Validate search length
-    if let Some(ref s) = params.search {
-        if s.len() > 200 {
-            return Err(AppError::BadRequest("search query too long (max 200 chars)".into()));
-        }
+    if let Some(ref s) = params.search
+        && s.len() > 200
+    {
+        return Err(AppError::BadRequest("search query too long (max 200 chars)".into()));
     }
 
     // Collect tags from both ?tag= and ?tags= params
@@ -57,63 +67,13 @@ pub async fn list_posts(
         }
     }
 
-    let mut where_clause =
-        "WHERE status = 'published' AND locale = $locale".to_string();
-    let has_tags = !tag_list.is_empty();
-    // Trim search, treat empty as None
     let search = params.search.and_then(|s| {
         let trimmed = s.trim().to_string();
         if trimmed.is_empty() { None } else { Some(trimmed) }
     });
-    let has_search = search.is_some();
 
-    if has_tags {
-        // Each tag must be present (AND logic)
-        for (i, _) in tag_list.iter().enumerate() {
-            where_clause.push_str(&format!(" AND tags CONTAINS $tag_{i}"));
-        }
-    }
-    if has_search {
-        where_clause.push_str(
-            " AND (string::lowercase(title) CONTAINS string::lowercase($search) \
-             OR string::lowercase(summary) CONTAINS string::lowercase($search))",
-        );
-    }
-
-    let select_query = format!(
-        "SELECT slug, locale, title, summary, tags, image, image_position, \
-         authors, reading_time, status, published_at, created_at \
-         FROM type::table($table) {where_clause} \
-         ORDER BY created_at DESC LIMIT $limit START $offset"
-    );
-    let count_query = format!(
-        "SELECT count() AS total FROM type::table($table) {where_clause} GROUP ALL"
-    );
-
-    let combined = format!("{select_query};\n{count_query}");
-
-    let mut query = state.db.query(&combined)
-        .bind(("table", post::TABLE))
-        .bind(("locale", locale))
-        .bind(("limit", limit))
-        .bind(("offset", offset));
-
-    for (i, tag) in tag_list.into_iter().enumerate() {
-        query = query.bind((format!("tag_{i}"), tag));
-    }
-    if let Some(search) = search {
-        query = query.bind(("search", search));
-    }
-
-    let mut result = query.await?;
-
-    let posts: Vec<PostSummary> = result.take(0)?;
-
-    // COUNT with GROUP ALL returns None when no rows match
-    let count_row: Option<serde_json::Value> = result.take(1)?;
-    let total = count_row
-        .and_then(|v| v.get("total").and_then(|t| t.as_u64()))
-        .unwrap_or(0);
+    let (posts, total) =
+        repo::post::list_published(&state.db, &locale, tag_list, search, limit, offset).await?;
 
     Ok(Json(PaginatedPosts { posts, total }))
 }
@@ -123,21 +83,8 @@ pub async fn get_post(
     Path(slug): Path<String>,
     Query(params): Query<SingleParams>,
 ) -> Result<Json<Post>, AppError> {
-    let locale = params.locale.unwrap_or_else(|| "en".into());
-
-    let mut result = state
-        .db
-        .query(
-            "SELECT * FROM type::table($table)
-             WHERE slug = $slug AND locale = $locale AND status = 'published'
-             LIMIT 1",
-        )
-        .bind(("table", post::TABLE))
-        .bind(("slug", slug))
-        .bind(("locale", locale))
-        .await?;
-
-    let post: Option<Post> = result.take(0)?;
+    let locale = sanitize_locale(params.locale);
+    let post = repo::post::get_published(&state.db, &slug, &locale).await?;
     post.map(Json).ok_or(AppError::NotFound)
 }
 
@@ -147,30 +94,13 @@ pub async fn list_tags(
     State(state): State<AppState>,
     Query(params): Query<TagsParams>,
 ) -> Result<Json<Vec<TagMeta>>, AppError> {
-    let locale = params.locale.unwrap_or_else(|| "en".into());
+    let locale = sanitize_locale(params.locale);
 
-    // Get distinct tag names from published posts
-    let mut result = state
-        .db
-        .query(
-            "SELECT tags FROM type::table($table) \
-             WHERE status = 'published' AND locale = $locale GROUP ALL",
-        )
-        .bind(("table", post::TABLE))
-        .bind(("locale", locale))
-        .await?;
-
-    let tags_raw: Option<serde_json::Value> = result.take(0)?;
+    let tags_raw = repo::post::published_tag_names(&state.db, &locale).await?;
     let tag_names = tag_meta::dedup_tag_names(tags_raw);
 
-    // Fetch all tag_meta records
-    let mut meta_result = state
-        .db
-        .query("SELECT name, color FROM type::table($table)")
-        .bind(("table", tag_meta::TABLE))
-        .await?;
-    let metas: Vec<TagMeta> = meta_result.take(0)?;
-
+    let metas = repo::tag::list_all_meta(&state.db).await?;
     let tags = tag_meta::merge_tags_with_colors(tag_names, metas);
+
     Ok(Json(tags))
 }

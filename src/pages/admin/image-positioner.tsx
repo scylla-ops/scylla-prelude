@@ -1,5 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { Move } from "lucide-react";
+
+function parsePosition(position: string) {
+  const match = position.match(/([\d.]+)%\s+([\d.]+)%/);
+  return match ? { x: parseFloat(match[1]), y: parseFloat(match[2]) } : { x: 50, y: 50 };
+}
 
 export function ImagePositioner({
   src,
@@ -12,18 +17,10 @@ export function ImagePositioner({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
-  const [pos, setPos] = useState(() => {
-    const match = position.match(/([\d.]+)%\s+([\d.]+)%/);
-    return match ? { x: parseFloat(match[1]), y: parseFloat(match[2]) } : { x: 50, y: 50 };
-  });
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
 
-  // Sync from prop when not dragging
-  useEffect(() => {
-    if (!dragging) {
-      const match = position.match(/([\d.]+)%\s+([\d.]+)%/);
-      if (match) setPos({ x: parseFloat(match[1]), y: parseFloat(match[2]) });
-    }
-  }, [position, dragging]);
+  const propPos = useMemo(() => parsePosition(position), [position]);
+  const pos = dragPos ?? propPos;
 
   const handleMove = useCallback(
     (clientX: number, clientY: number) => {
@@ -32,7 +29,7 @@ export function ImagePositioner({
       const rect = el.getBoundingClientRect();
       const x = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
       const y = Math.min(100, Math.max(0, ((clientY - rect.top) / rect.height) * 100));
-      setPos({ x, y });
+      setDragPos({ x, y });
     },
     [],
   );
@@ -59,6 +56,7 @@ export function ImagePositioner({
     if (dragging) {
       setDragging(false);
       const rounded = `${Math.round(pos.x)}% ${Math.round(pos.y)}%`;
+      setDragPos(null);
       onPositionChange(rounded);
     }
   }, [dragging, pos, onPositionChange]);

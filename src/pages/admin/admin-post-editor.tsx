@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -30,20 +30,19 @@ import {
 import { authors } from "@/data/authors";
 import {
   Save,
-  Upload,
   Clock,
   Check,
   Loader2,
   ArrowLeft,
   X,
-  ImageOff,
-  Images,
   Eye,
   Tag,
+  ChevronDown,
 } from "lucide-react";
 import { ImageGallery } from "./image-gallery";
-import { ImagePositioner } from "./image-positioner";
+import { CoverImageSection } from "./cover-image-section";
 import { CardPreview, EditorSkeleton } from "./card-preview";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 
 import { slugifyUrl } from "@/lib/utils";
 
@@ -112,13 +111,16 @@ export function AdminPostEditor() {
   const colorMutation = useMutation({
     mutationFn: ({ name, color }: { name: string; color: string }) =>
       upsertTagColor(token!, name, color),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tags"] });
+    },
   });
 
   const closeColorPicker = useCallback(
     (save: boolean, overrideColor?: string) => {
       const finalColor = overrideColor ?? pendingColor;
       if (save && colorPickerTag && finalColor) {
-        // Optimistic update — no invalidation here, saveMutation.onSuccess handles it
+        // Optimistic update — colorMutation.onSuccess will refetch from server
         queryClient.setQueryData<import("@/lib/api").TagInfo[]>(
           ["tags", form.locale],
           (old) => {
@@ -284,11 +286,61 @@ export function AdminPostEditor() {
     [form.published_at],
   );
 
+  const deferredContent = useDeferredValue(form.content);
   const wordCount = form.content.split(/\s+/).filter(Boolean).length;
   const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+  const editorHeightStyle = "calc(100vh - 200px)";
+
+  // Detect current theme for MDEditor (reads <html class="dark">)
+  const colorMode = useSyncExternalStore(
+    (cb) => {
+      const observer = new MutationObserver(cb);
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+      return () => observer.disconnect();
+    },
+    () => (document.documentElement.classList.contains("dark") ? "dark" : "light"),
+    () => "light",
+  );
+
+  // Scroll sync between editor and preview
+  const editorWrapperRef = useRef<HTMLDivElement>(null);
+  const previewScrollRef = useRef<HTMLDivElement>(null);
+  const isSyncing = useRef(false);
+
+  // Attach scroll listener to MDEditor's internal scrollable element
+  useEffect(() => {
+    const wrapper = editorWrapperRef.current;
+    if (!wrapper) return;
+
+    // MDEditor's scrollable textarea area
+    const editorScroll = wrapper.querySelector<HTMLElement>(".w-md-editor-text-input");
+    const preview = previewScrollRef.current;
+    if (!editorScroll || !preview) return;
+
+    const syncFrom = (from: HTMLElement, to: HTMLElement) => {
+      if (isSyncing.current) return;
+      isSyncing.current = true;
+      const maxFrom = from.scrollHeight - from.clientHeight;
+      const maxTo = to.scrollHeight - to.clientHeight;
+      if (maxFrom > 0 && maxTo > 0) {
+        to.scrollTop = (from.scrollTop / maxFrom) * maxTo;
+      }
+      requestAnimationFrame(() => { isSyncing.current = false; });
+    };
+
+    const onEditorScroll = () => syncFrom(editorScroll, preview);
+    const onPreviewScroll = () => syncFrom(preview, editorScroll);
+
+    editorScroll.addEventListener("scroll", onEditorScroll);
+    preview.addEventListener("scroll", onPreviewScroll);
+    return () => {
+      editorScroll.removeEventListener("scroll", onEditorScroll);
+      preview.removeEventListener("scroll", onPreviewScroll);
+    };
+  }, []);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 -mx-6 px-6 max-w-none w-[calc(100%+3rem)] lg:w-[calc(100vw-4rem)] lg:-mx-[calc((100vw-4rem-48rem)/2)]">
       {/* Header bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -396,18 +448,19 @@ export function AdminPostEditor() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3, delay: 0.05 }}
       >
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[320px_1fr]">
-        {/* Left panel — metadata */}
-        <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr_1fr]">
+        {/* Left sidebar — metadata */}
+        <div className="flex flex-col gap-4 lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto lg:pr-2">
           {/* Locale */}
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground">Locale</Label>
-            <div className="flex gap-2">
+          <div className="flex flex-col gap-1">
+            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Locale</Label>
+            <div className="flex gap-1.5">
               {["en", "fr"].map((loc) => (
                 <Button
                   key={loc}
                   variant={form.locale === loc ? "default" : "outline"}
                   size="sm"
+                  className="h-7 px-3 text-xs"
                   onClick={() =>
                     !isEditing && setForm((f) => ({ ...f, locale: loc }))
                   }
@@ -420,8 +473,8 @@ export function AdminPostEditor() {
           </div>
 
           {/* Title */}
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground">Title</Label>
+          <div className="flex flex-col gap-1">
+            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Title</Label>
             <Input
               placeholder="Post title"
               value={form.title}
@@ -433,12 +486,13 @@ export function AdminPostEditor() {
                   slug: isEditing ? f.slug : slugifyUrl(title),
                 }));
               }}
+              className="h-8 text-sm"
             />
           </div>
 
           {/* Slug */}
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground">Slug</Label>
+          <div className="flex flex-col gap-1">
+            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Slug</Label>
             <Input
               placeholder="post-slug"
               value={form.slug}
@@ -446,33 +500,33 @@ export function AdminPostEditor() {
                 setForm((f) => ({ ...f, slug: e.target.value }))
               }
               disabled={isEditing}
-              className="font-mono text-xs"
+              className="h-8 font-mono text-xs"
             />
             {!form.slug.trim() && form.title && (
-              <p className="text-xs text-destructive">
+              <p className="text-[10px] text-destructive">
                 Slug is required to save
               </p>
             )}
           </div>
 
           {/* Summary */}
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground">Summary</Label>
+          <div className="flex flex-col gap-1">
+            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Summary</Label>
             <textarea
-              placeholder="Brief description of the post"
+              placeholder="Brief description"
               value={form.summary}
               onChange={(e) =>
                 setForm((f) => ({ ...f, summary: e.target.value }))
               }
-              rows={3}
-              className="rounded-md border border-input bg-input/20 px-3 py-2 text-sm transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none dark:bg-input/30"
+              rows={2}
+              className="rounded-md border border-input bg-input/20 px-2.5 py-1.5 text-xs leading-relaxed transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none dark:bg-input/30"
             />
           </div>
 
-          {/* Tags with suggestions */}
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground">Tags</Label>
-            <div className="flex gap-2">
+          {/* Tags */}
+          <div className="flex flex-col gap-1">
+            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Tags</Label>
+            <div className="flex gap-1.5">
               <Input
                 placeholder="Add tag"
                 value={tagInput}
@@ -480,13 +534,12 @@ export function AdminPostEditor() {
                 onKeyDown={(e) =>
                   e.key === "Enter" && (e.preventDefault(), addTag())
                 }
-                className="flex-1"
+                className="h-7 flex-1 text-xs"
               />
-              <Button variant="outline" size="sm" onClick={() => addTag()}>
+              <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => addTag()}>
                 Add
               </Button>
             </div>
-            {/* Current tags with color picker */}
             {form.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {form.tags.map((tag) => {
@@ -525,10 +578,8 @@ export function AdminPostEditor() {
                           <X size={10} />
                         </button>
                       </div>
-                      {/* Color picker popover */}
                       {isPickerOpen && (
                         <>
-                          {/* Click-outside backdrop — saves + closes */}
                           <div
                             className="fixed inset-0 z-10"
                             onClick={() => closeColorPicker(true)}
@@ -573,29 +624,28 @@ export function AdminPostEditor() {
                 })}
               </div>
             )}
-            {/* Tag suggestions */}
             {isLoadingTags ? (
               <div className="flex flex-wrap gap-1">
-                {Array.from({ length: 5 }).map((_, i) => (
+                {Array.from({ length: 3 }).map((_, i) => (
                   <div
                     key={i}
-                    className="h-5 animate-pulse rounded-full bg-muted"
-                    style={{ width: `${48 + i * 12}px` }}
+                    className="h-4 animate-pulse rounded-full bg-muted"
+                    style={{ width: `${40 + i * 10}px` }}
                   />
                 ))}
               </div>
             ) : tagSuggestions.length > 0 ? (
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1">
                 <span className="flex items-center gap-1 text-[10px] text-muted-foreground/60">
-                  <Tag size={10} />
+                  <Tag size={8} />
                   Suggestions
                 </span>
                 <div className="flex flex-wrap gap-1">
-                  {tagSuggestions.slice(0, 12).map((tag) => (
+                  {tagSuggestions.slice(0, 8).map((tag) => (
                     <Badge
                       key={tag}
                       variant="outline"
-                      className="cursor-pointer gap-1 border-dashed text-muted-foreground transition-all hover:border-solid hover:bg-primary/10 hover:text-foreground"
+                      className="cursor-pointer gap-0.5 border-dashed px-1.5 py-0 text-[10px] text-muted-foreground transition-all hover:border-solid hover:bg-primary/10 hover:text-foreground"
                       onClick={() => addTag(tag)}
                     >
                       + {tag}
@@ -607,113 +657,34 @@ export function AdminPostEditor() {
           </div>
 
           {/* Cover Image */}
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground">
-              Cover image
-            </Label>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setGalleryOpen(true)}
-                className="flex-1"
-              >
-                <Images size={14} />
-                Gallery
-              </Button>
-              <label className="cursor-pointer">
-                <Button variant="outline" size="sm" asChild>
-                  <span>
-                    <Upload size={14} />
-                    Upload
-                  </span>
-                </Button>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                />
-              </label>
-            </div>
-            <Input
-              placeholder="Or paste image URL"
-              value={form.image || ""}
-              onChange={(e) => {
-                setForm((f) => ({ ...f, image: e.target.value || null }));
-                setImageError(false);
-              }}
-              className="text-xs"
-            />
-            {imageUploading && (
-              <div className="relative overflow-hidden rounded-lg ring-1 ring-foreground/10">
-                <div className="flex aspect-video w-full items-center justify-center bg-muted">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <Loader2 size={20} className="animate-spin" />
-                    <span className="text-xs">Uploading...</span>
-                  </div>
-                </div>
-              </div>
-            )}
-            {!imageUploading && form.image && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                className="flex flex-col gap-2"
-              >
-                {!imageError ? (
-                  <div className="relative">
-                    <ImagePositioner
-                      src={form.image}
-                      position={form.image_position || "50% 50%"}
-                      onPositionChange={(pos) =>
-                        setForm((f) => ({ ...f, image_position: pos }))
-                      }
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setForm((f) => ({ ...f, image: null, image_position: null }));
-                        setImageError(false);
-                      }}
-                      className="absolute top-8 right-2 rounded-full bg-black/60 p-1 text-white transition-colors hover:bg-black/80"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="relative overflow-hidden rounded-lg ring-1 ring-foreground/10">
-                    <div className="flex aspect-video w-full items-center justify-center bg-muted">
-                      <div className="flex flex-col items-center gap-1 text-muted-foreground/50">
-                        <ImageOff size={20} />
-                        <span className="text-xs">Failed to load</span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setForm((f) => ({ ...f, image: null, image_position: null }));
-                        setImageError(false);
-                      }}
-                      className="absolute top-2 right-2 rounded-full bg-black/60 p-1 text-white transition-colors hover:bg-black/80"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </div>
+          <CoverImageSection
+            image={form.image}
+            imagePosition={form.image_position}
+            imageError={imageError}
+            imageUploading={imageUploading}
+            onOpenGallery={() => setGalleryOpen(true)}
+            onImageUpload={handleImageUpload}
+            onImageUrlChange={(url) => {
+              setForm((f) => ({ ...f, image: url }));
+              setImageError(false);
+            }}
+            onPositionChange={(pos) => setForm((f) => ({ ...f, image_position: pos }))}
+            onClear={() => {
+              setForm((f) => ({ ...f, image: null, image_position: null }));
+              setImageError(false);
+            }}
+          />
 
           {/* Authors */}
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground">Authors</Label>
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-1">
+            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Authors</Label>
+            <div className="flex flex-wrap gap-1">
               {Object.entries(authors).map(([id, author]) => (
                 <Button
                   key={id}
                   variant={form.authors.includes(id) ? "default" : "outline"}
                   size="sm"
+                  className="h-7 px-2.5 text-xs"
                   onClick={() => toggleAuthor(id)}
                 >
                   {author.name}
@@ -722,14 +693,19 @@ export function AdminPostEditor() {
             </div>
           </div>
 
-          {/* Card Preview (collapsible on mobile) */}
-          <div className="flex flex-col gap-1.5">
+          {/* Card Preview */}
+          <div className="flex flex-col gap-1">
             <button
+              type="button"
               onClick={() => setShowPreview((p) => !p)}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground lg:hidden"
+              className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground/70 transition-colors hover:text-foreground"
             >
-              <Eye size={12} />
-              {showPreview ? "Hide" : "Show"} card preview
+              <Eye size={10} />
+              Card preview
+              <ChevronDown
+                size={10}
+                className={`transition-transform ${showPreview ? "rotate-180" : ""}`}
+              />
             </button>
             <AnimatePresence>
               {showPreview && (
@@ -737,7 +713,7 @@ export function AdminPostEditor() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden lg:hidden"
+                  className="overflow-hidden"
                 >
                   <CardPreview form={form} />
                 </motion.div>
@@ -746,30 +722,42 @@ export function AdminPostEditor() {
           </div>
         </div>
 
-        {/* Right panel — Editor + desktop preview */}
-        <div className="flex flex-col gap-6">
-          {/* Content editor */}
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground">Content</Label>
-            <div data-color-mode="auto">
-              <MDEditor
-                value={form.content}
-                onChange={(val) =>
-                  setForm((f) => ({ ...f, content: val || "" }))
-                }
-                height={600}
-              />
-            </div>
+        {/* Content editor */}
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <Label className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Content</Label>
+          <div
+            ref={editorWrapperRef}
+            data-color-mode={colorMode}
+            style={{ height: editorHeightStyle }}
+          >
+            <MDEditor
+              value={form.content}
+              onChange={(val) =>
+                setForm((f) => ({ ...f, content: val || "" }))
+              }
+              height="100%"
+              preview="edit"
+            />
           </div>
+        </div>
 
-          {/* Desktop card preview — always visible */}
-          <div className="hidden flex-col gap-2 lg:flex">
-            <Label className="text-xs text-muted-foreground">
-              Card preview
-            </Label>
-            <div className="max-w-sm">
-              <CardPreview form={form} />
-            </div>
+        {/* Content preview */}
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <Label className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+            Preview
+          </Label>
+          <div
+            ref={previewScrollRef}
+            className="rounded-lg border p-6 overflow-y-auto"
+            style={{ height: editorHeightStyle }}
+          >
+            {form.content ? (
+              <MarkdownRenderer content={deferredContent} />
+            ) : (
+              <p className="text-sm text-muted-foreground/50 italic">
+                Start writing to see the preview...
+              </p>
+            )}
           </div>
         </div>
       </div>

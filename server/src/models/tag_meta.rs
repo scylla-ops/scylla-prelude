@@ -16,10 +16,10 @@ pub struct TagMeta {
 /// nested arrays) and return them sorted.
 pub fn dedup_tag_names(tags_raw: Option<serde_json::Value>) -> Vec<String> {
     let mut names: Vec<String> = Vec::new();
-    if let Some(serde_json::Value::Object(map)) = tags_raw {
-        if let Some(serde_json::Value::Array(arr)) = map.get("tags") {
-            collect_strings(arr, &mut names);
-        }
+    if let Some(serde_json::Value::Object(map)) = tags_raw
+        && let Some(serde_json::Value::Array(arr)) = map.get("tags")
+    {
+        collect_strings(arr, &mut names);
     }
     names.sort();
     names

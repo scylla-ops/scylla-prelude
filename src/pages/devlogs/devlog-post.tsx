@@ -1,10 +1,7 @@
+import { useMemo } from "react";
 import { useParams, Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "motion/react";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
-import rehypeSanitize from "rehype-sanitize";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -17,12 +14,8 @@ import { ArrowLeft, Clock } from "lucide-react";
 import { fetchPost, fetchPublicTags, formatDate } from "@/lib/api";
 import { getAuthor } from "@/data/authors";
 import { useLocale } from "@/i18n/use-locale";
-import {
-  TableOfContents,
-  MobileToc,
-  slugify,
-  getTextContent,
-} from "@/components/toc";
+import { TableOfContents, MobileToc } from "@/components/toc";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 
 export function DevlogPost() {
   const { t, locale } = useLocale();
@@ -39,7 +32,7 @@ export function DevlogPost() {
     queryFn: () => fetchPublicTags(locale),
   });
 
-  const tagColorMap = new Map(tags.map((t) => [t.name, t.color]));
+  const tagColorMap = useMemo(() => new Map(tags.map((t) => [t.name, t.color])), [tags]);
 
   return (
     <AnimatePresence mode="wait">
@@ -142,12 +135,12 @@ export function DevlogPost() {
               {t("devlog.back")}
             </Link>
           </Button>
-          <div className="flex items-center justify-between gap-4">
-            <h1 className="text-3xl font-medium tracking-tight">
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="min-w-0 break-words text-3xl font-medium tracking-tight">
               {devlog.title}
             </h1>
             {devlog.authors.length > 0 && (
-              <AvatarGroup>
+              <AvatarGroup className="shrink-0 pt-1.5">
                 {devlog.authors.map((id) => {
                   const author = getAuthor(id);
                   if (!author) return null;
@@ -195,44 +188,11 @@ export function DevlogPost() {
         {/* Mobile TOC */}
         <MobileToc content={devlog.content} />
 
-        <div className="text-sm leading-7 text-muted-foreground break-words [&>*+*]:mt-5 [&_h1]:mt-8 [&_h1]:text-xl [&_h1]:font-medium [&_h1]:tracking-tight [&_h1]:text-foreground [&_h1]:scroll-mt-20 [&_h2]:mt-6 [&_h2]:text-base [&_h2]:font-medium [&_h2]:tracking-tight [&_h2]:text-foreground [&_h2]:scroll-mt-20 [&_h3]:mt-4 [&_h3]:text-sm [&_h3]:font-medium [&_h3]:text-foreground [&_h3]:scroll-mt-20 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-1 [&_strong]:text-foreground [&_a]:text-foreground [&_a]:underline [&_a]:underline-offset-3 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-xs [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-4 [&_blockquote]:italic [&_img]:mt-4 [&_img]:rounded-xl [&_img]:ring-1 [&_img]:ring-foreground/10 [&_hr]:border-border [&_hr]:my-6">
-          <Markdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw, rehypeSanitize]}
-            components={{
-              h1: ({ children, node, ...props }) => {
-                const id = slugify(getTextContent(children));
-                return (
-                  <h1 {...props} id={id}>
-                    {children}
-                  </h1>
-                );
-              },
-              h2: ({ children, node, ...props }) => {
-                const id = slugify(getTextContent(children));
-                return (
-                  <h2 {...props} id={id}>
-                    {children}
-                  </h2>
-                );
-              },
-              h3: ({ children, node, ...props }) => {
-                const id = slugify(getTextContent(children));
-                return (
-                  <h3 {...props} id={id}>
-                    {children}
-                  </h3>
-                );
-              },
-            }}
-          >
-            {devlog.content}
-          </Markdown>
-        </div>
+        <MarkdownRenderer content={devlog.content} />
       </article>
 
       {/* Desktop TOC — fixed in right gutter */}
-      <aside className="hidden xl:block fixed top-24 w-56" style={{
+      <aside className="hidden xl:block fixed top-24 bottom-6 w-56 overflow-y-auto overscroll-contain" style={{
         right: "max(1rem, calc((100vw - 48rem) / 2 - 16rem))",
       }}>
         <p className="mb-3 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">

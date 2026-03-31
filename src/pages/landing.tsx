@@ -387,7 +387,7 @@ export function LandingPage() {
                           )}
                           <div className="px-5 pt-5 pb-2">
                             <MorphingDialogTitle>
-                              <p className="text-sm font-medium leading-snug">
+                              <p className="text-sm font-medium leading-snug line-clamp-2 break-words">
                                 <HighlightMatch
                                   text={devlog.title}
                                   query={debouncedSearch}
@@ -396,6 +396,36 @@ export function LandingPage() {
                             </MorphingDialogTitle>
                           </div>
                         </MorphingDialogTrigger>
+                        {devlog.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 px-5 pb-2">
+                            {devlog.tags.slice(0, 3).map((tagName) => {
+                              const color = tagColorMap.get(tagName) ?? "#6b7280";
+                              return (
+                                <button
+                                  key={tagName}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleTag(tagName);
+                                  }}
+                                  className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors hover:opacity-80"
+                                  style={{ borderColor: color + "40", color }}
+                                >
+                                  <span
+                                    className="inline-block size-1.5 rounded-full"
+                                    style={{ backgroundColor: color }}
+                                  />
+                                  {tagName}
+                                </button>
+                              );
+                            })}
+                            {devlog.tags.length > 3 && (
+                              <span className="text-[10px] text-muted-foreground/50 self-center">
+                                +{devlog.tags.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        )}
                         <div className="flex items-center gap-3 px-5 pb-5">
                           <MorphingDialogSubtitle className="min-w-0 flex-1">
                             <p className="flex items-center gap-2 text-[13px] text-muted-foreground">

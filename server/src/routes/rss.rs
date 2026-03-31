@@ -7,7 +7,7 @@ use serde::Deserialize;
 
 use crate::AppState;
 use crate::error::AppError;
-use crate::models::post::{self, Post};
+use crate::repo;
 
 #[derive(Deserialize)]
 pub struct RssParams {
@@ -18,19 +18,13 @@ pub async fn feed(
     State(state): State<AppState>,
     Query(params): Query<RssParams>,
 ) -> Result<impl IntoResponse, AppError> {
-    let locale = params.locale.unwrap_or_else(|| "en".into());
+    let locale = match params.locale.as_deref() {
+        Some("en") => "en".to_string(),
+        Some("fr") => "fr".to_string(),
+        _ => "en".to_string(),
+    };
 
-    let mut result = state
-        .db
-        .query(
-            "SELECT * FROM type::table($table)
-             WHERE status = 'published' AND locale = $locale
-             ORDER BY created_at DESC LIMIT 20",
-        )
-        .bind(("table", post::TABLE))
-        .bind(("locale", locale.clone()))
-        .await?;
-    let posts: Vec<Post> = result.take(0)?;
+    let posts = repo::post::list_for_rss(&state.db, &locale, 20).await?;
 
     let title = match locale.as_str() {
         "fr" => "Scylla Prelude - Devlog",
