@@ -139,12 +139,6 @@ async fn main() {
             HeaderValue::from_static("1; mode=block"),
         ))
         .layer(SetResponseHeaderLayer::overriding(
-            HeaderName::from_static("content-security-policy"),
-            HeaderValue::from_static(
-                "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:;",
-            ),
-        ))
-        .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("permissions-policy"),
             HeaderValue::from_static(
                 "camera=(), microphone=(), geolocation=(), fullscreen=(self)",
