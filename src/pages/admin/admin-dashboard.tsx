@@ -28,7 +28,6 @@ import {
   Clock,
   FileText,
   AlertTriangle,
-  Globe,
   ImageOff,
   CalendarClock,
   Eye,

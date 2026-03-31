@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { toast } from "sonner";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "motion/react";
@@ -44,12 +45,7 @@ import { ImageGallery } from "./image-gallery";
 import { ImagePositioner } from "./image-positioner";
 import { CardPreview, EditorSkeleton } from "./card-preview";
 
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
+import { slugifyUrl } from "@/lib/utils";
 
 const AUTOSAVE_KEY = "admin_draft_autosave";
 const AUTOSAVE_INTERVAL = 30_000;
@@ -222,7 +218,7 @@ export function AdminPostEditor() {
       navigate("/admin");
     },
     onError: (error) => {
-      alert(`Save failed: ${error.message}`);
+      toast.error(`Save failed: ${error.message}`);
     },
   });
 
@@ -239,7 +235,7 @@ export function AdminPostEditor() {
       setImageError(false);
       queryClient.invalidateQueries({ queryKey: ["admin-media"] });
     } catch {
-      alert("Upload failed");
+      toast.error("Upload failed");
     } finally {
       setImageUploading(false);
     }
@@ -434,7 +430,7 @@ export function AdminPostEditor() {
                 setForm((f) => ({
                   ...f,
                   title,
-                  slug: isEditing ? f.slug : slugify(title),
+                  slug: isEditing ? f.slug : slugifyUrl(title),
                 }));
               }}
             />

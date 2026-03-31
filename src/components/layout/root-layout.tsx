@@ -1,6 +1,8 @@
 import { Outlet } from "react-router";
+import { Toaster } from "sonner";
 import { SiteHeader } from "./site-header";
 import { SiteFooter } from "./site-footer";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 export function RootLayout() {
   return (
@@ -8,10 +10,13 @@ export function RootLayout() {
       <div className="relative z-10 flex min-h-svh flex-col">
         <SiteHeader />
         <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
         <SiteFooter />
       </div>
+      <Toaster position="bottom-right" richColors closeButton />
     </>
   );
 }

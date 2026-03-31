@@ -9,14 +9,8 @@ interface TocItem {
   level: 1 | 2 | 3;
 }
 
-export function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .trim();
-}
+import { slugify } from "@/lib/utils";
+export { slugify };
 
 /** Extract plain text from React children (for heading content) */
 export function getTextContent(children: React.ReactNode): string {

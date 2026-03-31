@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Link, useSearchParams } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
@@ -20,19 +20,11 @@ import {
 import { ArrowRight, Filter, Check, X } from "lucide-react";
 import { fetchPosts, fetchPublicTags, formatDate } from "@/lib/api";
 import { useLocale } from "@/i18n/use-locale";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 const easeOutSine = [0.39, 0.575, 0.565, 1] as const;
 const staggerDelay = 0.12;
 const POSTS_PER_PAGE = 9;
-
-function useDebouncedValue<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return debounced;
-}
 
 function HighlightMatch({
   text,

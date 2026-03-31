@@ -28,7 +28,7 @@ export function DevlogPost() {
   const { t, locale } = useLocale();
   const { slug } = useParams<{ slug: string }>();
 
-  const { data: devlog, isLoading } = useQuery({
+  const { data: devlog, isLoading, isError } = useQuery({
     queryKey: ["post", slug, locale],
     queryFn: () => fetchPost(slug!, locale),
     enabled: !!slug,
@@ -85,6 +85,24 @@ export function DevlogPost() {
           <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
         </div>
       </motion.article>
+    ) : isError ? (
+      <motion.div
+        key="error"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="flex flex-col gap-6 items-center justify-center"
+      >
+        <h1 className="text-xl font-medium tracking-tight">
+          {t("devlog.error.title")}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {t("devlog.error.body")}
+        </p>
+        <Button variant="outline" size="lg" onClick={() => window.location.reload()}>
+          {t("devlog.error.retry")}
+        </Button>
+      </motion.div>
     ) : !devlog ? (
       <motion.div
         key="not-found"
