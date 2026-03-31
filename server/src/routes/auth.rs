@@ -1,6 +1,7 @@
 use axum::Json;
 use axum::extract::{Query, State};
 use axum::response::Redirect;
+use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use jsonwebtoken::{EncodingKey, Header, encode};
 use serde::Deserialize;
 
@@ -37,7 +38,8 @@ pub async fn github_redirect(State(state): State<AppState>) -> Redirect {
 pub async fn github_callback(
     State(state): State<AppState>,
     Query(params): Query<CallbackParams>,
-) -> Result<Redirect, AppError> {
+    jar: CookieJar,
+) -> Result<(CookieJar, Redirect), AppError> {
     let client = reqwest::Client::new();
 
     // Exchange code for access token
@@ -96,9 +98,14 @@ pub async fn github_callback(
     let jwt = encode(&Header::default(), &claims, &key)
         .map_err(|_| AppError::BadRequest("JWT encoding failed".into()))?;
 
-    // Redirect to admin with token
-    let redirect_url = format!("{}/admin?token={}", state.config.app_url, jwt);
-    Ok(Redirect::temporary(&redirect_url))
+    // Set token in a short-lived cookie and redirect to admin
+    let cookie = Cookie::build(("admin_token", jwt))
+        .path("/")
+        .max_age(time::Duration::seconds(60))
+        .same_site(SameSite::Lax);
+
+    let redirect_url = format!("{}/admin", state.config.app_url);
+    Ok((jar.add(cookie), Redirect::temporary(&redirect_url)))
 }
 
 pub async fn me(auth: AuthUser) -> Json<serde_json::Value> {

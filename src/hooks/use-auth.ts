@@ -32,10 +32,25 @@ function decodeJwtPayload(token: string): AuthUser | null {
   }
 }
 
+function consumeTokenCookie(): string | null {
+  const match = document.cookie.match(/(?:^|;\s*)admin_token=([^;]+)/);
+  if (!match) return null;
+  const token = match[1];
+  // Delete the cookie immediately
+  document.cookie = "admin_token=; Path=/; Max-Age=0";
+  return token;
+}
+
 export function useAuth(): AuthState {
-  const [token, setTokenState] = useState<string | null>(() =>
-    localStorage.getItem("admin_token"),
-  );
+  const [token, setTokenState] = useState<string | null>(() => {
+    // Check for a token cookie set by the OAuth callback
+    const cookieToken = consumeTokenCookie();
+    if (cookieToken) {
+      localStorage.setItem("admin_token", cookieToken);
+      return cookieToken;
+    }
+    return localStorage.getItem("admin_token");
+  });
 
   const user = useMemo(() => (token ? decodeJwtPayload(token) : null), [token]);
 
