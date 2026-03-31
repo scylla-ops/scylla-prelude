@@ -2,6 +2,7 @@ use server::config::AppConfig;
 use server::{AppState, api_router, routes, scheduler};
 
 use axum::Router;
+use axum::extract::DefaultBodyLimit;
 use axum::http::header::CACHE_CONTROL;
 use axum::http::{HeaderName, HeaderValue};
 use axum::routing::get;
@@ -9,6 +10,7 @@ use std::net::SocketAddr;
 use tower::ServiceBuilder;
 use tower_http::LatencyUnit;
 use tower_http::compression::CompressionLayer;
+use tower_http::cors::{CorsLayer, AllowOrigin};
 use tower_http::request_id::{MakeRequestUuid, SetRequestIdLayer};
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::set_header::SetResponseHeaderLayer;
@@ -37,6 +39,7 @@ async fn main() {
         .init();
 
     let config = AppConfig::from_env();
+    config.warn_insecure_defaults();
 
     // Initialize SurrealDB
     let db = server::db::init_db(&config)
@@ -51,8 +54,29 @@ async fn main() {
     // Spawn scheduled publication background task
     scheduler::spawn_publish_scheduler(db);
 
-    // API routes
-    let api = api_router(state.clone());
+    // CORS — only allow the configured app URL as origin
+    let cors = CorsLayer::new()
+        .allow_origin(AllowOrigin::exact(
+            config.app_url.parse::<HeaderValue>().unwrap_or_else(|_| {
+                HeaderValue::from_static("http://localhost:5173")
+            }),
+        ))
+        .allow_methods([
+            axum::http::Method::GET,
+            axum::http::Method::POST,
+            axum::http::Method::PUT,
+            axum::http::Method::DELETE,
+        ])
+        .allow_headers([
+            axum::http::header::AUTHORIZATION,
+            axum::http::header::CONTENT_TYPE,
+        ])
+        .max_age(std::time::Duration::from_secs(86400));
+
+    // API routes with CORS and body limit
+    let api = api_router(state.clone())
+        .layer(cors)
+        .layer(DefaultBodyLimit::max(10 * 1024 * 1024)); // 10MB
 
     // OG meta tags route — serves index.html with injected OG/Twitter tags for social crawlers
     let og_router = Router::new()

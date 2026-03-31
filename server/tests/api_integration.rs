@@ -22,7 +22,6 @@ fn test_config() -> AppConfig {
         jwt_secret: "test-secret".into(),
         admin_github_usernames: vec!["testuser".into()],
         app_url: "http://localhost:8080".into(),
-        uploads_path: "/tmp/scylla-test-uploads".into(),
     }
 }
 
@@ -1753,4 +1752,156 @@ async fn admin_list_posts_pagination() {
         .await;
     let page: Vec<Value> = res.json();
     assert_eq!(page.len(), 2);
+}
+
+// ─── Pass 4: Edge Case Tests ────────────────────────────────────────────────
+
+#[tokio::test]
+async fn auth_me_with_expired_token() {
+    let server = test_app().await;
+
+    // Create a JWT with exp in the past
+    let claims = json!({
+        "sub": "testuser",
+        "name": "Test User",
+        "avatar_url": "https://example.com/avatar.png",
+        "exp": chrono::Utc::now().timestamp() - 3600, // 1 hour ago
+    });
+    let key = jsonwebtoken::EncodingKey::from_secret("test-secret".as_bytes());
+    let expired_token = jsonwebtoken::encode(&jsonwebtoken::Header::default(), &claims, &key).unwrap();
+
+    let res = server
+        .get("/auth/me")
+        .authorization_bearer(&expired_token)
+        .await;
+    res.assert_status(axum::http::StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn create_post_with_xss_in_title() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    let body = json!({
+        "slug": "xss-test",
+        "locale": "en",
+        "title": "<script>alert(1)</script>",
+        "summary": "Safe summary",
+        "content": "Safe content",
+        "tags": [],
+        "image": null,
+        "authors": [],
+        "status": "published",
+        "published_at": null
+    });
+    let res = server
+        .post("/admin/posts")
+        .authorization_bearer(&token)
+        .json(&body)
+        .await;
+    res.assert_status_ok();
+
+    // The title is stored as-is (content is escaped on rendering, not storage)
+    let post: Value = res.json();
+    assert_eq!(post["title"], "<script>alert(1)</script>");
+
+    // Verify it's accessible and unmodified
+    let res = server
+        .get("/posts/xss-test")
+        .add_query_param("locale", "en")
+        .await;
+    res.assert_status_ok();
+    let post: Value = res.json();
+    assert_eq!(post["title"], "<script>alert(1)</script>");
+}
+
+#[tokio::test]
+async fn rss_feed_empty_when_no_posts() {
+    let server = test_app().await;
+
+    let res = server.get("/rss").add_query_param("locale", "en").await;
+    res.assert_status_ok();
+    let body = res.text();
+    // Should be valid XML with zero items
+    assert!(body.contains("<channel>"));
+    assert!(!body.contains("<item>"));
+}
+
+#[tokio::test]
+async fn delete_nonexistent_post_returns_empty() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    let res = server
+        .delete("/admin/posts/does-not-exist")
+        .add_query_param("locale", "en")
+        .authorization_bearer(&token)
+        .await;
+    // delete returns BEFORE, so null/empty for nonexistent
+    res.assert_status_ok();
+    let body: Value = res.json();
+    assert!(body.is_null());
+}
+
+#[tokio::test]
+async fn get_nonexistent_media_returns_404() {
+    let server = test_app().await;
+
+    let res = server.get("/media/nonexistent-id/raw").await;
+    res.assert_status(axum::http::StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn create_post_with_too_many_tags() {
+    let server = test_app().await;
+    let token = test_jwt("test-secret");
+
+    let tags: Vec<String> = (0..11).map(|i| format!("tag-{i}")).collect();
+    let body = json!({
+        "slug": "too-many-tags",
+        "locale": "en",
+        "title": "Test",
+        "summary": "Test",
+        "content": "Content",
+        "tags": tags,
+        "image": null,
+        "authors": [],
+        "status": "draft",
+        "published_at": null
+    });
+    let res = server
+        .post("/admin/posts")
+        .authorization_bearer(&token)
+        .json(&body)
+        .await;
+    res.assert_status(axum::http::StatusCode::BAD_REQUEST);
+    let body: Value = res.json();
+    assert!(body["error"].as_str().unwrap().contains("10 tags"));
+}
+
+#[tokio::test]
+async fn malformed_jwt_returns_unauthorized() {
+    let server = test_app().await;
+
+    let res = server
+        .get("/admin/posts")
+        .authorization_bearer("not.a.valid.jwt.token")
+        .await;
+    res.assert_status(axum::http::StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn sql_injection_in_search_is_safe() {
+    let server = test_app().await;
+
+    // Attempt SQL injection via search parameter (parameterized, so safe)
+    let res = server
+        .get("/posts")
+        .add_query_param("locale", "en")
+        .add_query_param("search", "test' OR 1=1; DROP TABLE post; --")
+        .await;
+    // Should return OK with empty results, not crash
+    res.assert_status_ok();
+    let body: Value = res.json();
+    assert!(body["posts"].as_array().unwrap().is_empty());
 }

@@ -16,7 +16,6 @@ pub struct AppConfig {
     pub jwt_secret: String,
     pub admin_github_usernames: Vec<String>,
     pub app_url: String,
-    pub uploads_path: String,
 }
 
 impl AppConfig {
@@ -51,8 +50,6 @@ impl AppConfig {
             .collect();
         let app_url =
             env::var("APP_URL").unwrap_or_else(|_| "http://localhost:5173".to_string());
-        let uploads_path = env::var("UPLOADS_PATH")
-            .unwrap_or_else(|_| format!("{}/images/uploads", dist_path));
 
         Self {
             host,
@@ -68,7 +65,21 @@ impl AppConfig {
             jwt_secret,
             admin_github_usernames,
             app_url,
-            uploads_path,
+        }
+    }
+
+    pub fn warn_insecure_defaults(&self) {
+        if self.jwt_secret == "change-me-in-prod" {
+            tracing::warn!("JWT_SECRET is using the default value — change this in production!");
+        }
+        if self.surrealdb_user == "root" && self.surrealdb_pass == "root" {
+            tracing::warn!("SurrealDB is using default root/root credentials — change this in production!");
+        }
+        if self.github_client_id.is_empty() {
+            tracing::warn!("GITHUB_CLIENT_ID is empty — OAuth login will not work");
+        }
+        if self.admin_github_usernames.is_empty() {
+            tracing::warn!("ADMIN_GITHUB_USERNAMES is empty — no users will have admin access");
         }
     }
 }
