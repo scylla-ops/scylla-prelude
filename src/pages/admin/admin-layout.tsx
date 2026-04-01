@@ -76,7 +76,7 @@ function VersionInfo() {
   const { data } = useQuery({
     queryKey: ["health"],
     queryFn: async () => {
-      const res = await fetch("/api/health");
+      const res = await fetch("/api/v1/health");
       if (!res.ok) return null;
       return res.json() as Promise<{ version: string; commit: string }>;
     },
