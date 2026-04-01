@@ -27,6 +27,16 @@ import {
   type CreatePostRequest,
 } from "@/lib/api";
 import { authors } from "@/data/authors";
+
+/** Format a Date as "YYYY-MM-DDTHH:MM" in the user's local timezone (for datetime-local input) */
+function toLocalDatetimeString(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const h = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${day}T${h}:${min}`;
+}
 import {
   Save,
   Clock,
@@ -389,50 +399,22 @@ export function AdminPostEditor() {
             </SelectContent>
           </Select>
           {form.status === "scheduled" && (
-            <div className="flex items-center gap-2">
-              <Input
-                type="date"
-                value={
-                  form.published_at
-                    ? new Date(form.published_at).toISOString().slice(0, 10)
-                    : ""
-                }
-                onChange={(e) => {
-                  const date = e.target.value;
-                  const time = form.published_at
-                    ? new Date(form.published_at).toISOString().slice(11, 16)
-                    : "00:00";
-                  setForm((f) => ({
-                    ...f,
-                    published_at: date
-                      ? new Date(`${date}T${time}`).toISOString()
-                      : null,
-                  }));
-                }}
-                className="w-36"
-              />
-              <Input
-                type="time"
-                value={
-                  form.published_at
-                    ? new Date(form.published_at).toISOString().slice(11, 16)
-                    : ""
-                }
-                onChange={(e) => {
-                  const time = e.target.value;
-                  const date = form.published_at
-                    ? new Date(form.published_at).toISOString().slice(0, 10)
-                    : new Date().toISOString().slice(0, 10);
-                  setForm((f) => ({
-                    ...f,
-                    published_at: time
-                      ? new Date(`${date}T${time}`).toISOString()
-                      : null,
-                  }));
-                }}
-                className="w-28"
-              />
-            </div>
+            <Input
+              type="datetime-local"
+              value={
+                form.published_at
+                  ? toLocalDatetimeString(new Date(form.published_at))
+                  : ""
+              }
+              onChange={(e) => {
+                const val = e.target.value;
+                setForm((f) => ({
+                  ...f,
+                  published_at: val ? new Date(val).toISOString() : null,
+                }));
+              }}
+              className="w-52"
+            />
           )}
           <Button
             onClick={handleSave}
