@@ -39,14 +39,13 @@ RUN cargo chef prepare --recipe-path recipe.json
 # ==========================================
 FROM chef AS backend-build
 
-ARG GIT_COMMIT=dev
-
 # Cook dependencies — cached en layer tant que recipe.json ne change pas
 COPY --from=planner /app/server/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
 # Build application — seul le code source est recompilé
 COPY server/ .
+ARG GIT_COMMIT=dev
 ENV GIT_COMMIT=${GIT_COMMIT}
 RUN cargo build --release && \
 	cp /app/server/target/release/server /app/server-bin
