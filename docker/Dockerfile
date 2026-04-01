@@ -17,22 +17,40 @@ COPY . .
 RUN bun run build
 
 # ==========================================
-# Étape 2 : Build Backend (Rust)
+# Étape 2 : Base cargo-chef
 # ==========================================
-FROM rust:bookworm AS backend-build
-
-ARG TARGETARCH
-
-WORKDIR /app
+FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	pkg-config libssl-dev libclang-dev && \
 	rm -rf /var/lib/apt/lists/*
 
-COPY server/ ./server/
-
 WORKDIR /app/server
 
+# ==========================================
+# Étape 3 : Planner (génère recipe.json)
+# ==========================================
+FROM chef AS planner
+
+COPY server/ .
+RUN cargo chef prepare --recipe-path recipe.json
+
+# ==========================================
+# Étape 4 : Build Backend (Rust)
+# ==========================================
+FROM chef AS backend-build
+
+ARG TARGETARCH
+
+# Cook dependencies (cached tant que recipe.json ne change pas)
+COPY --from=planner /app/server/recipe.json recipe.json
+RUN --mount=type=cache,target=/usr/local/cargo/registry,id=cargo-registry-${TARGETARCH} \
+	--mount=type=cache,target=/usr/local/cargo/git,id=cargo-git-${TARGETARCH} \
+	--mount=type=cache,target=/app/server/target,id=cargo-target-${TARGETARCH} \
+	cargo chef cook --release --recipe-path recipe.json
+
+# Build application
+COPY server/ .
 RUN --mount=type=cache,target=/usr/local/cargo/registry,id=cargo-registry-${TARGETARCH} \
 	--mount=type=cache,target=/usr/local/cargo/git,id=cargo-git-${TARGETARCH} \
 	--mount=type=cache,target=/app/server/target,id=cargo-target-${TARGETARCH} \

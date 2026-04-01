@@ -31,23 +31,22 @@ def main():
 
     full_tag = f"{user}/{image}:{version}"
 
-    # 1. Build
-    if ask_confirm(f"Build {full_tag}?"):
-        # Setup Builder
-        if subprocess.run("docker buildx inspect multi-builder", shell=True, capture_output=True).returncode != 0:
-            run_command("docker buildx create --name multi-builder --use")
-
-        print(f"Building for {platforms}...")
-        run_command(f"docker buildx build --platform {platforms} -f {dockerfile} -t {full_tag} .")
-
-        # 2. Push
-        if ask_confirm(f"Push {full_tag} to Docker Hub?"):
-            run_command(f"docker buildx build --platform {platforms} -f {dockerfile} -t {full_tag} --push .")
-            print("Done.")
-        else:
-            print("Push aborted.")
-    else:
+    # 1. Ask for build + push upfront
+    if not ask_confirm(f"Build {full_tag}?"):
         print("Build aborted.")
+        return
+
+    push = ask_confirm(f"Push {full_tag} to Docker Hub after build?")
+
+    # 2. Setup Builder
+    if subprocess.run("docker buildx inspect multi-builder", shell=True, capture_output=True).returncode != 0:
+        run_command("docker buildx create --name multi-builder --use")
+
+    push_flag = " --push" if push else ""
+
+    # 3. Build (and push if confirmed)
+    print(f"Building for {platforms}...{' (will push after build)' if push else ''}")
+    run_command(f"docker buildx build --platform {platforms} -f {dockerfile} -t {full_tag}{push_flag} .")
 
 if __name__ == "__main__":
     main()
