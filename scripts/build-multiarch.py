@@ -42,6 +42,8 @@ def main():
     # 2. Setup Builder
     if subprocess.run("docker buildx inspect multi-builder", shell=True, capture_output=True).returncode != 0:
         run_command("docker buildx create --name multi-builder --use")
+    else:
+        run_command("docker buildx use multi-builder")
 
     cache_flags = f"--cache-from type=registry,ref={cache_tag} --cache-to type=registry,ref={cache_tag},mode=max"
     push_flag = " --push" if push else ""

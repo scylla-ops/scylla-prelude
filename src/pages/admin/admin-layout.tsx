@@ -1,4 +1,5 @@
 import { Outlet, Link } from "react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocale } from "@/i18n/use-locale";
@@ -66,6 +67,30 @@ export function AdminLayout() {
         </div>
       </div>
       <Outlet />
+      <VersionInfo />
     </div>
+  );
+}
+
+function VersionInfo() {
+  const { data } = useQuery({
+    queryKey: ["health"],
+    queryFn: async () => {
+      const res = await fetch("/api/health");
+      if (!res.ok) return null;
+      return res.json() as Promise<{ version: string; commit: string }>;
+    },
+    staleTime: Infinity,
+  });
+
+  if (!data) return null;
+
+  return (
+    <p className="text-[10px] text-muted-foreground/50 text-right mt-4">
+      v{data.version}
+      {data.commit !== "dev" && (
+        <span className="ml-1">({data.commit.slice(0, 7)})</span>
+      )}
+    </p>
   );
 }

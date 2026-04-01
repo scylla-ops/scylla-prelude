@@ -10,8 +10,7 @@ ARG TARGETARCH
 WORKDIR /app
 
 COPY package.json bun.lock ./
-RUN --mount=type=cache,target=/root/.bun/install/cache,id=bun-cache-${TARGETARCH} \
-	bun install --frozen-lockfile
+RUN bun install --frozen-lockfile
 
 COPY . .
 RUN bun run build
@@ -40,27 +39,20 @@ RUN cargo chef prepare --recipe-path recipe.json
 # ==========================================
 FROM chef AS backend-build
 
-ARG TARGETARCH
 ARG GIT_COMMIT=dev
 
-# Cook dependencies (cached tant que recipe.json ne change pas)
+# Cook dependencies — cached en layer tant que recipe.json ne change pas
 COPY --from=planner /app/server/recipe.json recipe.json
-RUN --mount=type=cache,target=/usr/local/cargo/registry,id=cargo-registry-${TARGETARCH} \
-	--mount=type=cache,target=/usr/local/cargo/git,id=cargo-git-${TARGETARCH} \
-	--mount=type=cache,target=/app/server/target,id=cargo-target-${TARGETARCH} \
-	cargo chef cook --release --recipe-path recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
 
-# Build application
+# Build application — seul le code source est recompilé
 COPY server/ .
 ENV GIT_COMMIT=${GIT_COMMIT}
-RUN --mount=type=cache,target=/usr/local/cargo/registry,id=cargo-registry-${TARGETARCH} \
-	--mount=type=cache,target=/usr/local/cargo/git,id=cargo-git-${TARGETARCH} \
-	--mount=type=cache,target=/app/server/target,id=cargo-target-${TARGETARCH} \
-	cargo build --release && \
+RUN cargo build --release && \
 	cp /app/server/target/release/server /app/server-bin
 
 # ==========================================
-# Étape 3 : Final Image
+# Étape 5 : Final Image
 # ==========================================
 FROM debian:bookworm-slim
 
@@ -73,7 +65,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 COPY --from=frontend-build /app/dist /app/dist
-
 COPY --from=backend-build /app/server-bin /app/server-bin
 
 ENV HOST=0.0.0.0
