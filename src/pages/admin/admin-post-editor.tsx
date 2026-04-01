@@ -389,23 +389,50 @@ export function AdminPostEditor() {
             </SelectContent>
           </Select>
           {form.status === "scheduled" && (
-            <Input
-              type="datetime-local"
-              value={
-                form.published_at
-                  ? new Date(form.published_at).toISOString().slice(0, 16)
-                  : ""
-              }
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  published_at: e.target.value
-                    ? new Date(e.target.value).toISOString()
-                    : null,
-                }))
-              }
-              className="w-52"
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                value={
+                  form.published_at
+                    ? new Date(form.published_at).toISOString().slice(0, 10)
+                    : ""
+                }
+                onChange={(e) => {
+                  const date = e.target.value;
+                  const time = form.published_at
+                    ? new Date(form.published_at).toISOString().slice(11, 16)
+                    : "00:00";
+                  setForm((f) => ({
+                    ...f,
+                    published_at: date
+                      ? new Date(`${date}T${time}`).toISOString()
+                      : null,
+                  }));
+                }}
+                className="w-36"
+              />
+              <Input
+                type="time"
+                value={
+                  form.published_at
+                    ? new Date(form.published_at).toISOString().slice(11, 16)
+                    : ""
+                }
+                onChange={(e) => {
+                  const time = e.target.value;
+                  const date = form.published_at
+                    ? new Date(form.published_at).toISOString().slice(0, 10)
+                    : new Date().toISOString().slice(0, 10);
+                  setForm((f) => ({
+                    ...f,
+                    published_at: time
+                      ? new Date(`${date}T${time}`).toISOString()
+                      : null,
+                  }));
+                }}
+                className="w-28"
+              />
+            </div>
           )}
           <Button
             onClick={handleSave}

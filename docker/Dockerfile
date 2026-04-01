@@ -19,7 +19,7 @@ RUN bun run build
 # ==========================================
 # Étape 2 : Base cargo-chef
 # ==========================================
-FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-1-bookworm AS chef
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	pkg-config libssl-dev libclang-dev && \
@@ -41,6 +41,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 FROM chef AS backend-build
 
 ARG TARGETARCH
+ARG GIT_COMMIT=dev
 
 # Cook dependencies (cached tant que recipe.json ne change pas)
 COPY --from=planner /app/server/recipe.json recipe.json
@@ -51,6 +52,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,id=cargo-registry-${TARG
 
 # Build application
 COPY server/ .
+ENV GIT_COMMIT=${GIT_COMMIT}
 RUN --mount=type=cache,target=/usr/local/cargo/registry,id=cargo-registry-${TARGETARCH} \
 	--mount=type=cache,target=/usr/local/cargo/git,id=cargo-git-${TARGETARCH} \
 	--mount=type=cache,target=/app/server/target,id=cargo-target-${TARGETARCH} \

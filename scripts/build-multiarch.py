@@ -30,6 +30,7 @@ def main():
         sys.exit(1)
 
     full_tag = f"{user}/{image}:{version}"
+    cache_tag = f"{user}/{image}:buildcache"
 
     # 1. Ask for build + push upfront
     if not ask_confirm(f"Build {full_tag}?"):
@@ -42,11 +43,15 @@ def main():
     if subprocess.run("docker buildx inspect multi-builder", shell=True, capture_output=True).returncode != 0:
         run_command("docker buildx create --name multi-builder --use")
 
+    cache_flags = f"--cache-from type=registry,ref={cache_tag} --cache-to type=registry,ref={cache_tag},mode=max"
     push_flag = " --push" if push else ""
+
+    # Get git commit hash
+    git_commit = subprocess.run("git rev-parse --short HEAD", shell=True, capture_output=True, text=True).stdout.strip() or "dev"
 
     # 3. Build (and push if confirmed)
     print(f"Building for {platforms}...{' (will push after build)' if push else ''}")
-    run_command(f"docker buildx build --platform {platforms} -f {dockerfile} -t {full_tag}{push_flag} .")
+    run_command(f"docker buildx build --platform {platforms} -f {dockerfile} -t {full_tag} --build-arg GIT_COMMIT={git_commit} {cache_flags}{push_flag} .")
 
 if __name__ == "__main__":
     main()
