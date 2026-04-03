@@ -49,6 +49,7 @@ export function AdminLayout() {
               {t("admin.dashboard")}
             </Link>
           </Button>
+          <VersionBar />
         </div>
         <div className="flex items-center gap-3">
           {user?.avatar_url && (
@@ -67,12 +68,11 @@ export function AdminLayout() {
         </div>
       </div>
       <Outlet />
-      <VersionInfo />
     </div>
   );
 }
 
-function VersionInfo() {
+function VersionBar() {
   const { data } = useQuery({
     queryKey: ["health"],
     queryFn: async () => {
@@ -86,11 +86,13 @@ function VersionInfo() {
   if (!data) return null;
 
   return (
-    <p className="text-[10px] text-muted-foreground/50 text-right mt-4">
-      v{data.version}
-      {data.commit !== "dev" && (
-        <span className="ml-1">({data.commit.slice(0, 7)})</span>
-      )}
-    </p>
+    <div className="flex items-center justify-center gap-2">
+      <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+        v{data.version}
+      </span>
+      <span className="rounded-full bg-muted px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
+        {data.commit}
+      </span>
+    </div>
   );
 }
