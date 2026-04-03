@@ -18,7 +18,7 @@ import {
   MorphingDialogClose,
   MorphingDialogPlaceholder,
 } from "@/components/ui/morphing-dialog";
-import { ArrowRight, Filter, Check, X } from "lucide-react";
+import { ArrowRight, Rocket, Filter, Check, X } from "lucide-react";
 import { fetchPosts, fetchPublicTags, formatDate } from "@/lib/api";
 import { useLocale } from "@/i18n/use-locale";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -240,6 +240,25 @@ export function LandingPage() {
             </p>
           </SlideIn>
         </section>
+
+        {/* Beta CTA */}
+        <SlideIn index={5}>
+          <section className="relative overflow-hidden rounded-xl border-l-4 border-primary bg-primary/10 p-6 ring-1 ring-primary/20">
+            <div className="absolute -top-8 -right-8 size-32 rounded-full bg-primary/10 blur-2xl" />
+            <div className="relative flex flex-col items-center gap-4 text-center">
+              <p className="text-sm font-medium leading-relaxed text-foreground">
+                {t("landing.beta.body")}
+              </p>
+              <Button size="lg" asChild>
+                <Link to="/registration-beta">
+                  <Rocket size={16} />
+                  {t("landing.beta.cta")}
+                  <ArrowRight size={16} />
+                </Link>
+              </Button>
+            </div>
+          </section>
+        </SlideIn>
 
         {/* Posts section */}
         <FadeIn index={5}>

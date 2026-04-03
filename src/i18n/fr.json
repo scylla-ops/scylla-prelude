@@ -55,5 +55,11 @@
   "filter.all": "Tous",
   "filter.tags": "Tags",
   "filter.clearAll": "Tout effacer",
-  "devlog.toc.title": "Sommaire"
+  "devlog.toc.title": "Sommaire",
+  "landing.beta.body": "Nous ouvrons un programme beta. Obtenez un acc\u00e8s anticip\u00e9 et aidez-nous \u00e0 construire Scylla.",
+  "landing.beta.cta": "Rejoindre la beta",
+  "beta.back": "Retour",
+  "beta.title": "Programme Beta",
+  "beta.subtitle": "Rejoignez le programme beta de Scylla et contribuez \u00e0 fa\u00e7onner l'avenir du CI. Vos retours influenceront directement ce que nous construirons.",
+  "beta.fallback": "Le formulaire ne s'affiche pas ? Remplissez-le directement sur"
 }

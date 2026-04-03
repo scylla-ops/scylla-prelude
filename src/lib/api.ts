@@ -345,6 +345,16 @@ export function formatDate(date: string, locale: string = "en"): string {
   });
 }
 
+export function formatDateTime(date: string, locale: string = "en"): string {
+  const localeMap: Record<string, string> = { en: "en-US", fr: "fr-FR" };
+  return new Date(date).toLocaleString(localeMap[locale] ?? "en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;

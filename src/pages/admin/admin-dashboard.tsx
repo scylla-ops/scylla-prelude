@@ -19,6 +19,7 @@ import {
   deletePost,
   patchPostStatus,
   formatDate,
+  formatDateTime,
   type PostSummary,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -155,7 +156,7 @@ function PostRow({
                 <span className="text-border">·</span>
                 <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
                   <Clock size={10} />
-                  {formatDate(post.published_at)}
+                  {formatDateTime(post.published_at)}
                 </span>
               </>
             )}

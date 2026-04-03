@@ -55,5 +55,11 @@
   "filter.all": "All",
   "filter.tags": "Tags",
   "filter.clearAll": "Clear all",
-  "devlog.toc.title": "Table of contents"
+  "devlog.toc.title": "Table of contents",
+  "landing.beta.body": "We're opening a beta program. Get early access and help us shape Scylla from the ground up.",
+  "landing.beta.cta": "Join the beta",
+  "beta.back": "Back",
+  "beta.title": "Beta Program",
+  "beta.subtitle": "Join the Scylla beta program and help shape the future of CI. Your early feedback will directly influence what we build next.",
+  "beta.fallback": "Form not loading? Fill it out directly on"
 }
