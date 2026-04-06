@@ -73,6 +73,12 @@ pub async fn create_post(
 
     let reading_time = estimate_reading_time(&req.content);
 
+    let published_at = if req.status == "published" && req.published_at.is_none() {
+        Some(Utc::now())
+    } else {
+        req.published_at
+    };
+
     let post = repo::post::create(
         &state.db,
         CreatePost {
@@ -87,7 +93,7 @@ pub async fn create_post(
             authors: req.authors,
             reading_time,
             status: req.status,
-            published_at: req.published_at,
+            published_at,
         },
     )
     .await

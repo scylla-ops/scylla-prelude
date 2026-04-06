@@ -456,7 +456,7 @@ export function LandingPage() {
                         <div className="flex items-center gap-3 px-5 pb-5">
                           <MorphingDialogSubtitle className="min-w-0 flex-1">
                             <p className="flex items-center gap-2 text-[13px] text-muted-foreground">
-                              <span className="truncate">{formatDate(devlog.created_at, locale)}</span>
+                              <span className="truncate">{formatDate(devlog.published_at ?? devlog.created_at, locale)}</span>
                               <span className="shrink-0 text-border">·</span>
                               <span className="shrink-0">{devlog.reading_time} min</span>
                             </p>
@@ -498,7 +498,7 @@ export function LandingPage() {
                             </MorphingDialogTitle>
                             <MorphingDialogSubtitle>
                               <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                                <span>{formatDate(devlog.created_at, locale)}</span>
+                                <span>{formatDate(devlog.published_at ?? devlog.created_at, locale)}</span>
                                 <span className="text-border">·</span>
                                 <span>{devlog.reading_time} min</span>
                               </p>

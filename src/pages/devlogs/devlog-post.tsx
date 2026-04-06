@@ -156,7 +156,7 @@ export function DevlogPost() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">
-              {formatDate(devlog.created_at, locale)}
+              {formatDate(devlog.published_at ?? devlog.created_at, locale)}
             </span>
             <span className="text-xs text-border">·</span>
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
