@@ -30,7 +30,7 @@ export function SiteFooter() {
 						<Linkedin size={16} />
 					</a>
 					<a
-						href="https://github.com/scylla-ops/scylla-prelude"
+						href="https://github.com/scylla-ops"
 						target="_blank"
 						rel="noopener noreferrer"
 						className="hover:text-foreground transition-colors"
