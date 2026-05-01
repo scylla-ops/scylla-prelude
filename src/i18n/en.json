@@ -61,5 +61,9 @@
   "beta.back": "Back",
   "beta.title": "Beta Program",
   "beta.subtitle": "Join the Scylla beta program and help shape the future of CI. Your early feedback will directly influence what we build next.",
-  "beta.fallback": "Form not loading? Fill it out directly on"
+  "beta.fallback": "Form not loading? Fill it out directly on",
+  "feedback.back": "Back",
+  "feedback.title": "Beta Program Feedback",
+  "feedback.subtitle": "Share your feedback on the Scylla beta. Bug reports, friction points, feature requests — everything helps shape v0.1.0.",
+  "feedback.fallback": "Form not loading? Fill it out directly on"
 }

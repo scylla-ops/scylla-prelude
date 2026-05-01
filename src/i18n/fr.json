@@ -61,5 +61,9 @@
   "beta.back": "Retour",
   "beta.title": "Programme Beta",
   "beta.subtitle": "Rejoignez le programme beta de Scylla et contribuez \u00e0 fa\u00e7onner l'avenir du CI. Vos retours influenceront directement ce que nous construirons.",
-  "beta.fallback": "Le formulaire ne s'affiche pas ? Remplissez-le directement sur"
+  "beta.fallback": "Le formulaire ne s'affiche pas ? Remplissez-le directement sur",
+  "feedback.back": "Retour",
+  "feedback.title": "Retours Programme Beta",
+  "feedback.subtitle": "Partagez vos retours sur la beta de Scylla. Bugs, points de friction, demandes de fonctionnalités — tout aide à façonner la v0.1.0.",
+  "feedback.fallback": "Le formulaire ne s'affiche pas ? Remplissez-le directement sur"
 }
