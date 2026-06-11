@@ -24,9 +24,10 @@ Scylla Prelude is a devblog for the Scylla open-core CI platform. It's a monorep
 - `cargo test -- --nocapture` — show println output
 - `cargo test -- --test-threads=1` — run tests serially (for debugging)
 
-### Docker (from `docker/`)
-- `docker compose up` — run production image behind reverse proxy
-- `python3 scripts/build-multiarch.py` — multi-arch Docker build (amd64/arm64)
+### Docker
+- `docker compose up` (from `docker/`) — run production image behind reverse proxy
+- `uv run scripts/build.py` (from repo root) — build the image locally (mono-arch, `--load`)
+- `uv run scripts/build.py --push` — build multi-arch (amd64/arm64) + push `:<version>` + `:latest` to Docker Hub. Version is read from `package.json`; image name from `docker/.env` (`PRELUDE_FRONTEND_IMAGE_NAME`). Self-contained uv script (PEP 723) — no pip install needed. Add `--dry-run` to preview the buildx command.
 
 ## Architecture
 
