@@ -64,20 +64,16 @@ export function FeedbackPage() {
 
       <Separator />
 
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        {t("feedback.subtitle")}
-      </p>
-
       <div>
         <iframe
-          data-tally-src="https://tally.so/embed/XxY1QL?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1"
+          data-tally-src="https://tally.so/embed/VLNKaj?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1"
           loading="lazy"
           width="100%"
           height={278}
           frameBorder={0}
           marginHeight={0}
           marginWidth={0}
-          title="Beta Program Feedback 0.1.0"
+          title="Beta Program Feedback 0.2"
           className="rounded-lg"
         />
       </div>
@@ -85,7 +81,7 @@ export function FeedbackPage() {
       <p className="text-xs text-muted-foreground/50">
         {t("feedback.fallback")}{" "}
         <a
-          href="https://tally.so/r/XxY1QL"
+          href="https://tally.so/r/VLNKaj"
           target="_blank"
           rel="noopener noreferrer"
           className="underline underline-offset-2 hover:text-muted-foreground"

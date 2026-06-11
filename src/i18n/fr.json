@@ -64,6 +64,5 @@
   "beta.fallback": "Le formulaire ne s'affiche pas ? Remplissez-le directement sur",
   "feedback.back": "Retour",
   "feedback.title": "Retours Programme Beta",
-  "feedback.subtitle": "Partagez vos retours sur la beta de Scylla. Bugs, points de friction, demandes de fonctionnalités — tout aide à façonner la v0.1.0.",
   "feedback.fallback": "Le formulaire ne s'affiche pas ? Remplissez-le directement sur"
 }
