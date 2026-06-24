@@ -66,14 +66,14 @@ export function FeedbackPage() {
 
       <div>
         <iframe
-          data-tally-src="https://tally.so/embed/VLNKaj?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1"
+          data-tally-src="https://tally.so/embed/obgQYP?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1"
           loading="lazy"
           width="100%"
           height={278}
           frameBorder={0}
           marginHeight={0}
           marginWidth={0}
-          title="Beta Program Feedback 0.2"
+          title="Beta Program Feedback 0.3"
           className="rounded-lg"
         />
       </div>
@@ -81,7 +81,7 @@ export function FeedbackPage() {
       <p className="text-xs text-muted-foreground/50">
         {t("feedback.fallback")}{" "}
         <a
-          href="https://tally.so/r/VLNKaj"
+          href="https://tally.so/r/obgQYP"
           target="_blank"
           rel="noopener noreferrer"
           className="underline underline-offset-2 hover:text-muted-foreground"
